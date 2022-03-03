@@ -1,9 +1,11 @@
+import configparser
 import threading
-import queue
-import time
 import datetime
 import logging
 import random
+import queue
+import time
+import csv
 import sys
 import os
 
@@ -22,11 +24,137 @@ import grove.grove_temperature_humidity_sensor_sht3x as seed_sht31
 # Import camera stuff
 from picamera import PiCamera
 
-# Initialize global variables
-BUF_SIZE = 10
-q_ctl = queue.Queue(BUF_SIZE)
-
+# Initialize program logging
 logging.basicConfig(level=logging.DEBUG, format='(%(threadName)-9s) %(message)s',)
+
+# Open the ini file
+config = configparser.ConfigParser()
+config.read('BeeLogger.ini')
+
+class DHT11:
+    # Class to control DHT11 temperature and humidity sensor
+    def __init__(self,  order, port):
+        self.order = order
+        try:
+            self.DHT11 = seeed_dht.DHT("11", port)
+        except:
+            timeStamp = datetime.datetime.now()
+            logging.error(timeStamp, ': DHT11 sensor ', self.order, ' initialization failure.')
+
+    def measure(self):
+        try:
+            HumIn, TempIn = self.DHT11.read()
+        except:
+            timeStamp = datetime.datetime.now()
+            logging.error(timeStamp, ': DHT11 sensor ', self.order, ' communication (one-wire) failure.')
+
+            HumIn = NaN
+            TempIn = NaN
+
+        return HumIn, TempIn
+
+class SGP30:
+    # Class to control SGP30 gass sensor
+    def __init__(self, order):
+        self.order = order
+        try:
+            self.SGP30 = seeed_sgp30.grove_sgp30(bus=Bus(1))
+        except:
+            timeStamp = datetime.datetime.now()
+            logging.error(timeStamp, ': Gass sensor ', self.order, ' initialization failure.')
+    
+    def measure(self):
+        try:
+            gData = self.SGP30.read_measurements()
+            co2_eq_ppm, tvoc_ppb = gData.data
+        except:
+            timeStamp = datetime.datetime.now()
+            logging.error(timeStamp, ': Gass sensor ', self.order, ' communication (I2C) failure.')
+
+            co2_eq_ppm = NaN
+            tvoc_ppb = NaN
+
+        return co2_eq_ppm, tvoc_ppb
+
+class SHT31:
+    # Class to control SHT31 temperature and humidity sensor together with the QMP6988 temperature and pressure sensor
+    def __init__(self, order):
+        self.order = order
+        try:
+            self.SHT31 = seed_sht31.GroveTemperatureHumiditySensorSHT3x(bus=Bus(1))
+        except:
+            timeStamp = datetime.datetime.now()
+            logging.error(timeStamp, ': Atmosphere sensor ', self.order, ' initialization failure.')
+
+        try:  
+            self.QMP69 = 0
+            # TODO: Doresit snimani tlaku
+        except:
+            timeStamp = datetime.datetime.now()
+            logging.error(timeStamp, ': Pressure sensor ', self.order, ' initialization failure.')
+    
+    def measure(self):
+        try:
+            TempOut, HumOut = self.SHT31.read()
+        except:
+            timeStamp = datetime.datetime.now()
+            logging.error(timeStamp, ': Atmosphere sensor ', self.order, ' communication (I2C) failure.')
+            TempOut = NaN
+            HumOut = NaN
+
+        try:
+            PressOut = 0
+            # TODO: Doresit snimani tlaku
+        except:
+            timeStamp = datetime.datetime.now()
+            logging.error(timeStamp, ': Pressure sensor ', self.order, ' communication (I2C) failure.')
+            PressOut = NaN
+
+        return TempOut, HumOut, PressOut
+
+class LightS:
+    # Class to control daylight sensor
+    def __init__(self, order, port):
+        self.order = order
+        try:
+            self.daylg = GroveLightSensor(port)
+        except:
+            timeStamp = datetime.datetime.now()
+            logging.error(timeStamp, ': Atmosphere sensor ', self.order, ' initialization failure.')
+
+    def measure(self):
+        try:
+            lightOut = self.daylg.light
+        except:
+            timeStamp = datetime.datetime.now()
+            logging.error(timeStamp, ': Light sensor ', self.order, ', or hat communication (I2C) failure.')
+            lightOut = NaN
+
+        return lightOut
+
+class Relay:
+    # Class to control relay
+    def __init__(self, order, port):
+        self.order = order
+        try:
+            self.relay = Factory.getGpioWrapper("Relay", port)
+        except:
+            timeStamp = datetime.datetime.now()
+            logging.error(timeStamp, ': Relay ', self.order, ' initialization failure.')
+
+    def on(self):
+        try:
+            self.relay.on()
+        except:
+            timeStamp = datetime.datetime.now()
+            logging.error(timeStamp, ': Relay ', self.order, ' failure.')
+
+    def off(self):
+        try:
+            self.relay.off()
+        except:
+            timeStamp = datetime.datetime.now()
+            logging.error(timeStamp, ': Relay ', self.order, ' failure.')
 
 
 class SensorThread(threading.Thread):
@@ -34,73 +162,60 @@ class SensorThread(threading.Thread):
         super(SensorThread,self).__init__()
         self.name = name
 
-        # TODO: Pridat nacitani portu z ini souboru
-        self.relay = Factory.getGpioWrapper("Relay", 5)
-        try:
-            self.SGP30 = seeed_sgp30.grove_sgp30(bus=Bus(1))
-            self.DHT11_1 = seeed_dht.DHT("11", 16)
-            self.DHT11_2 = seeed_dht.DHT("11", 16)
-            self.SHT31 = seed_sht31.GroveTemperatureHumiditySensorSHT3x(bus=Bus(1))
-            # TODO: Doresit snimani tlaku
-            self.daylg = GroveLightSensor(1)
-        except:
-            timeStamp = datetime.datetime.now()
-            logging.error(timeStamp, ': Sensor initialization failure.')
+        self.period = config.getint('Sensors', 'period_thread')
+
+        # Initialize the sensors objects
+        self.DHT11_1 = DHT11(1, config.getint('Sensors', 'port_DHT11_1'))
+        self.DHT11_2 = DHT11(2, config.getint('Sensors', 'port_DHT11_2'))
+        self.SGP30_1 = SGP30(1)
+        self.SHT31_1 = SHT31(1)
+        self.Light_1 = LightS(1, config.getint('Sensors', 'port_LightS_1'))
 
         # Open the log file and create header
-        # TODO: Pouzit csv writer?
         try:
-            self.logSens = open('SensorLog.csv', "a+")
-            self.logSens.write("Timestamp,CO2_eq (ppm),TVOC (ppb),TempIn_1 (°C),HumIn_1 (%),TempIn_2 (°C),HumIn_2 (%),TempOut (°C),HumOut (%),Pressure (hPa),Light (-)")
+            datetime.datetime.now()
+            now = datetime.datetime.now()
+            timeString = now.strftime("%y%m%d_%H%M")
+            fileName = 'log/SensorLog_' + timeString + '.csv'
+
+            with open(fileName, 'w') as f:
+                # create the csv writer
+                self.writer = csv.writer(f)
+
+            row = ['Timestamp', 'CO2_eq (ppm)', 'TVOC (ppb)', 'TempIn_1 (°C)', 'HumIn_1 (%)', 'TempIn_2 (°C)', 'HumIn_2 (%)', 'TempOut (°C)', 'HumOut (%)', 'Pressure (hPa)', 'Light (-)']
+            self.writer.writerow(row)
         except:
+            timeStamp = datetime.datetime.now()
             logging.error(timeStamp, ': Initialization of the log file failed.')
 
     def run(self):
         # Get the sensor data
         timeStamp = datetime.datetime.now()
 
-        try:
-            gData = self.SGP30.read_measurements()
-            co2_eq_ppm, tvoc_ppb = gData.data
-        except:
-            logging.error(timeStamp, ': Gass sensor (I2C) failure.')
-            co2_eq_ppm = NaN
-            tvoc_ppb = NaN
+        # SGP30 - gass sensor
+        co2_eq_ppm, tvoc_ppb = self.SGP30_1.measure()
 
-        try:
-            HumIn_1, TempIn_1 = self.DHT11_1.read()
-            HumIn_2, TempIn_2 = self.DHT11_2.read()
-        except:
-            logging.error(timeStamp, ': DHT11 sensor (I2C) failure.')
-            HumIn_1 = NaN
-            HumIn_1 = NaN
-            TempIn_1 = NaN
-            TempIn_1 = NaN
+        # DHT11 - inner temperature and humidity
+        HumIn_1, TempIn_1 = self.DHT11_1.measure()
+        HumIn_2, TempIn_2 = self.DHT11_2.measure()
 
-        try:
-            TempOut, HumOut = self.SHT31.read()
-            # TODO: Doresit snimani tlaku
-        except:
-            logging.error(timeStamp, ': Atmosphere sensor (I2C) failure.')
-            TempOut = NaN
-            HumOut = NaN
+        # SHT31 - outer temperature, humidity and pressure
+        TempOut, HumOut, PressOut = self.SHT31_1.measure()
 
-        try:
-            Light = self.daylg.light
-        except:
-            logging.error(timeStamp, ': Grove hat I2C failure.')
-            Light = NaN
+        # Light sensor value
+        Light = self.Light_1.measure()
         
         # Create log
         try:
-            self.logSens.write(timeStamp, ",", co2_eq_ppm, ",", tvoc_ppb, ",", TempIn_1, ",", HumIn_1, ",", TempIn_2, ",", HumIn_2, ",", TempOut, ",", HumOut, ",", "Pressure", ",", Light)
+            row = [timeStamp, co2_eq_ppm, tvoc_ppb, TempIn_1, HumIn_1, TempIn_2, HumIn_2, TempOut, HumOut, PressOut, Light]
+            self.writer.writerow(row)
+
             logging.info(timeStamp, ': Sensor data were writen to the log.')
         except:
             logging.error(timeStamp, ': Writing to log file failed.')
 
         # Call the thread periodicaly
-        # TODO: nacitat periodu z ini souboru
-        threading.Timer(300, self.run).start()
+        threading.Timer(self.period, self.run).start()
 
 
 class MicrophoneThread(threading.Thread):
@@ -129,25 +244,29 @@ class CameraThread(threading.Thread):
     def stop(self):
         self.camera.stop_preview()
 
-class ConsumerThread(threading.Thread):
+
+class ControlThread(threading.Thread):
     def __init__(self, name):
-        super(ConsumerThread,self).__init__()
+        super(ControlThread, self).__init__()
         self.name = name
         return
 
     def run(self):
         while not q_ctl.empty():
             float_value1 = q_ctl.get()
-            sqr_value1 = float_value1 * float_value1
-            log1.write("The square of " + str(float_value1) + " is " + str(sqr_value1))
+
             logging.debug('Getting ' + str(float_value1) + ' : ' + str(q_ctl.qsize()) + ' items in queue')
             time.sleep(random.random())
         return
 
+
 if __name__ == '__main__':
 
+    BUF_SIZE = 10
+    q_ctl = queue.Queue(BUF_SIZE)
+
     p = SensorThread(name='producer')
-    c = ConsumerThread(name='consumer')
+    c = ControlThread(name='consumer')
 
     p.start()
     time.sleep(2)
