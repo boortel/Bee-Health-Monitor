@@ -11,6 +11,7 @@ import os
 
 from numpy import NaN
 from Camera import Camera
+from Microphone import Microphone
 from Sensors import DHT11, SGP30, SHT31, LightS
 
 # Initialize program logging
@@ -23,9 +24,11 @@ config.read('BeeLogger.ini')
 class SensorThread(threading.Thread):
     def __init__(self, name):
         super(SensorThread,self).__init__()
+
+        self.errorLog = 0
         self.name = name
 
-        self.period = config.getint('Sensors', 'period_thread')
+        self.periodSensor = config.getint('Sensors', 'period_threadSensors')
 
         # Initialize the sensors objects
         self.DHT11_1 = DHT11(1, config.getint('Sensors', 'port_DHT11_1'))
@@ -34,9 +37,12 @@ class SensorThread(threading.Thread):
         self.SHT31_1 = SHT31(1)
         self.Light_1 = LightS(1, config.getint('Sensors', 'port_LightS_1'))
 
+        # Initialize the microphone
+        self.recordTime = config.getint('Sensors', 'recordTime')
+        self.microphone = Microphone(self.recordTime)
+
         # Open the log file and create header
         try:
-            datetime.datetime.now()
             now = datetime.datetime.now()
             timeString = now.strftime("%y%m%d_%H%M")
             fileName = 'log/SensorLog_' + timeString + '.csv'
@@ -74,23 +80,17 @@ class SensorThread(threading.Thread):
             self.writer.writerow(row)
 
             logging.info(timeStamp, ': Sensor data were writen to the log.')
+            self.errorLog = 0
         except:
-            logging.error(timeStamp, ': Writing to log file failed.')
+            if self.errorLog == 0:
+                logging.error(timeStamp, ': Writing to log file failed.')
+                self.errorLog = 1
+
+        # Record the sound
+        self.microphone.record()
 
         # Call the thread periodicaly
-        threading.Timer(self.period, self.run).start()
-
-
-class MicrophoneThread(threading.Thread):
-    def __init__(self, name):
-        super(MicrophoneThread,self).__init__()
-        self.name = name
-
-        # TODO: Pridat nacitani portu z ini souboru
-        self.microphone = GroveSoundSensor(2)
-
-    def run(self):
-        sound = self.microphone.sound
+        threading.Timer(self.periodSensor, self.run).start()
 
 
 class CameraThread(threading.Thread):
@@ -103,9 +103,6 @@ class CameraThread(threading.Thread):
 
     def run(self):
         self.camera.start_preview()
-
-    def stop(self):
-        self.camera.stop_preview()
 
 
 class ControlThread(threading.Thread):
