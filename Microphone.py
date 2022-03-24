@@ -1,12 +1,13 @@
 import datetime
 import logging
+import os
 
-from ctypes import *
 from contextlib import contextmanager
+from ctypes import *
 import pyaudio
 import wave
 
-# Error handler code
+# Error handler code to supress non-relevant warnings
 ERROR_HANDLER_FUNC = CFUNCTYPE(None, c_char_p, c_int, c_char_p, c_int, c_char_p)
 
 def py_error_handler(filename, line, function, err, fmt):
@@ -23,7 +24,7 @@ def noalsaerr():
 
 class Microphone:
     # Class to control rPi HQ camera
-    def __init__(self, recordTime):
+    def __init__(self, recordTime, baseLog):
         self.errorRecord = 0
         self.errorSaving = 0
 
@@ -36,19 +37,26 @@ class Microphone:
         # TODO: get the index dynamically based on the Mic_Init
         self.dev_index = 2 # device index found by p.get_device_info_by_index(ii)
 
+        # Create the sound log folder if not exists
+        self.soundPath = baseLog + '/SoundLog'
+        if not os.path.exists(self.soundPath):
+            os.makedirs(self.soundPath)
+
         try:
             with noalsaerr():
                 self.audio = pyaudio.PyAudio() # create pyaudio instantiation
         except:
-            timeStamp = datetime.datetime.now()
-            logging.error(timeStamp, ': USB mic initialization failure.')
+            now = datetime.datetime.now()
+            timeStamp = now.strftime("%y%m%d_%H%M%S")
+            logging.error(timeStamp + ': USB mic initialization failure.')
 
     def __del__(self):
         try:
             self.audio.terminate()
         except:
-            timeStamp = datetime.datetime.now()
-            logging.error(timeStamp, ': USB mic reference closing failure.')
+            now = datetime.datetime.now()
+            timeStamp = now.strftime("%y%m%d_%H%M%S")
+            logging.error(timeStamp + ': USB mic reference closing failure.')
 
     def record(self):
         frames = []
@@ -60,7 +68,7 @@ class Microphone:
                                 frames_per_buffer = self.chunk)
 
             # Loop through stream and append audio chunks to frame array
-            for ii in range(0,int((self.samp_rate/self.chunk)*self.record_secs)):
+            for ii in range(0,int((self.samp_rate/self.chunk)*self.recordTime)):
                 data = stream.read(self.chunk)
                 frames.append(data)
 
@@ -71,14 +79,15 @@ class Microphone:
             self.errorRecord = 0
         except:
             if self.errorRecord == 0:
-                timeStamp = datetime.datetime.now()
-                logging.error(timeStamp, ': USB mic recording failure.')
+                now = datetime.datetime.now()
+                timeStamp = now.strftime("%y%m%d_%H%M%S")
+                logging.error(timeStamp + ': USB mic recording failure.')
                 self.errorRecord = 1
 
         # Generate the .waw file name
-        timeStamp = datetime.datetime.now()
-        timeString = timeStamp.strftime("%y%m%d_%H%M")
-        wav_output_filename = 'log/SoundLog/' + timeString + '.waw'
+        now = datetime.datetime.now()
+        timeStamp = now.strftime("%y%m%d_%H%M%S")
+        wav_output_filename = self.soundPath + '/' + timeStamp + '.wav'
 
         try:
             # Save the audio frames as .wav file
@@ -89,10 +98,11 @@ class Microphone:
             wavefile.writeframes(b''.join(frames))
             wavefile.close()
 
-            logging.info(timeStamp, ': Sound data were writen to the log.')
+            logging.info(timeStamp + ': Sound data were writen to the log.')
             self.errorSaving = 0
         except:
             if self.errorRecord == 0:
-                timeStamp = datetime.datetime.now()
-                logging.error(timeStamp, ': USB mic recording failure.')
+                now = datetime.datetime.now()
+                timeStamp = now.strftime("%y%m%d_%H%M%S")
+                logging.error(timeStamp + ': Sound data saving failure.')
                 self.errorRecord = 1

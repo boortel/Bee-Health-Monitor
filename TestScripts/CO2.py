@@ -8,4 +8,4 @@ while True:
     data = sgp30.read_measurements()
     co2_eq_ppm, tvoc_ppb = data.data
     print("\r  tVOC = {} ppb CO2eq = {} ppm  ".format(tvoc_ppb, co2_eq_ppm))
-    time.sleep(1)
+    time.sleep(0.01)
