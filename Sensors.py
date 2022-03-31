@@ -12,7 +12,7 @@ from grove.factory import Factory
 from grove.grove_light_sensor_v1_2 import GroveLightSensor
 import grove.grove_temperature_humidity_sensor_sht3x as seed_sht31
 
-class DHT11:
+class DHT11(object):
     # Class to control DHT11 temperature and humidity sensor
     def __init__(self,  order, port):
         self.errorMeasure = 0
@@ -41,7 +41,7 @@ class DHT11:
 
         return HumIn, TempIn
 
-class SGP30:
+class SGP30(object):
     # Class to control SGP30 gass sensor
     def __init__(self, order):
         self.errorMeasure = 0
@@ -71,7 +71,7 @@ class SGP30:
 
         return co2_eq_ppm, tvoc_ppb
 
-class SHT31:
+class SHT31(object):
     # Class to control SHT31 temperature and humidity sensor together with the QMP6988 temperature and pressure sensor
     def __init__(self, order):
         self.errorMeasureSHT = 0
@@ -122,7 +122,7 @@ class SHT31:
 
         return TempOut, HumOut, PressOut
 
-class LightS:
+class LightS(object):
     # Class to control daylight sensor
     def __init__(self, order, port):
         self.errorMeasure = 0
@@ -150,7 +150,7 @@ class LightS:
 
         return lightOut
 
-class Relay:
+class Relay(object):
     # Class to control relay
     def __init__(self, order, port):
         self.errorOn = 0

@@ -22,7 +22,7 @@ def noalsaerr():
     yield
     asound.snd_lib_error_set_handler(None)
 
-class Microphone:
+class Microphone(object):
     # Class to control rPi HQ camera
     def __init__(self, recordTime, baseLog):
         self.errorRecord = 0

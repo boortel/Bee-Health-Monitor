@@ -1,41 +1,32 @@
 import configparser
-import threading
 import datetime
 import logging
-import random
-import queue
 import time
 import os
 
-from Threads import SensorThread, CameraThread
+from SensorThread import SensorThread
+from CameraThread import CameraThread
+
+from Sensors import Relay
+
 from Camera import setCaptureStatus
+from CameraThread import setCamLogStatus
+from SensorThread import setSensLogStatus
 
-# Initialize program logging
-logging.basicConfig(level=logging.DEBUG, format='(%(threadName)-6s) %(message)s',)
+def main():
+    # Initialize program logging
+    logging.basicConfig(level=logging.DEBUG, format='(%(threadName)-6s) %(message)s',)
 
-# Open the ini file
-cfg = configparser.ConfigParser()
-cfg.read('BeeLogger.ini')
+    # Open the ini file
+    cfg = configparser.ConfigParser()
+    cfg.read('BeeLogger.ini')
 
-class ControlThread(threading.Thread):
-    def __init__(self, name):
-        super(ControlThread, self).__init__()
-        self.name = name
-        return
+    # Set the camera capture on and off times
+    t_on = datetime.time(hour=6, minute=30)
+    t_off = datetime.time(hour=18, minute=30)
 
-    def run(self):
-        while not q_ctl.empty():
-            float_value1 = q_ctl.get()
-
-            logging.debug('Getting ' + str(float_value1) + ' : ' + str(q_ctl.qsize()) + ' items in queue')
-            time.sleep(random.random())
-        return
-
-# Run the main function
-if __name__ == '__main__':
-
-    BUF_SIZE = 10
-    q_ctl = queue.Queue(BUF_SIZE)
+    # Initialize the relay object
+    relay = Relay(1, 5)
 
     # Create the log directory and its structure if it not exists yet
     now = datetime.datetime.now()
@@ -49,9 +40,34 @@ if __name__ == '__main__':
     # Create the sensor and camera thread
     sen = SensorThread(name = 'sensor', baseLog = logPath, config = cfg)
     cam = CameraThread(name = 'camera', baseLog = logPath, config = cfg)
-    #ctl = ControlThread(name='consumer')
 
+    # Run the threads
     sen.start()
     cam.start()
-    time.sleep(2)
-    setCaptureStatus(False)
+
+    log = True
+
+    # Control the threads run and the camera capturing
+    while log:
+        t = datetime.time()
+
+        # Turn on and off the camera capture together with the light
+        if t >= t_on and t < t_off:
+            setCaptureStatus(True)
+            relay.on()
+        else:
+            setCaptureStatus(False)
+            relay.off()
+
+        # Optional: terminate the sensor and camera threads logging together with the program
+        # Set custom condition
+        #setCamLogStatus(False)
+        #setSensLogStatus(False)
+        #log = False
+
+        time.sleep(0.1)
+
+
+# Run the main function
+if __name__ == '__main__':
+    main()
