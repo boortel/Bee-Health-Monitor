@@ -7,13 +7,15 @@ from PIL import Image
 
 # Image processing thread
 class ImageProcessor(threading.Thread):
-    def __init__(self, owner, camPath):
+    def __init__(self, owner, camPath, ROI):
         super(ImageProcessor, self).__init__()
         self.stream = io.BytesIO()
         self.event = threading.Event()
         self.terminated = False
         self.owner = owner
+
         self.camPath = camPath
+        self.ROI = ROI
         self.start()
 
     def run(self):
@@ -26,6 +28,7 @@ class ImageProcessor(threading.Thread):
 
                     # Read the image and do some processing on it
                     image = Image.open(self.stream)
+                    image = image.crop(self.ROI)
                     #...
                     #...
 

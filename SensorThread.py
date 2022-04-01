@@ -11,10 +11,10 @@ from Sensors import DHT11, SGP30, SHT31, LightS
 # Global variable to stop sensor logging
 sensLogStatus = True
 
-# Function to set the capture control variable
-def setSensLogStatus(status):
+# Function to stop the SensorThread internal loop
+def stopSenThread():
     global sensLogStatus
-    sensLogStatus = status
+    sensLogStatus = False
 
 
 # Sensor handle thread
@@ -24,6 +24,7 @@ class SensorThread(threading.Thread):
 
         self.name = name
         self.errorLog = 0
+
         self.periodSensor = config.getint('Sensors', 'period_threadSensors')
 
         # Initialize the sensors objects
@@ -57,7 +58,7 @@ class SensorThread(threading.Thread):
         # This loop is run until stopped from main
         while sensLogStatus:
             # Get the start time
-            t1 = datetime.timedelta.total_seconds()
+            t1 = time.time()
 
             # Get the sensor data
             now = datetime.datetime.now()
@@ -98,7 +99,7 @@ class SensorThread(threading.Thread):
             self.microphone.record()
 
             # Get the end time and sleep till the next period
-            t2 = datetime.timedelta.total_seconds()
+            t2 = time.time()
             diff = t2 - t1
 
             if diff < self.periodSensor:

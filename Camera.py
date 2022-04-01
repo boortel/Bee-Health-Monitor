@@ -17,12 +17,12 @@ def setCaptureStatus(status):
 
 # Object to create image processing and saving threads
 class ProcessOutput(object):
-    def __init__(self, camPath):
+    def __init__(self, camPath, ROI):
         self.done = False
         # Construct a pool of 4 image processors along with a lock
         # to control access between threads
         self.lock = threading.Lock()
-        self.pool = [ImageProcessor(self, camPath) for i in range(4)]
+        self.pool = [ImageProcessor(self, camPath, ROI) for i in range(4)]
         self.processor = None
 
     def write(self, buf):
@@ -92,8 +92,7 @@ class Camera(object):
             self.camera.awb_gains = g
 
             # Set the ROI
-            x, y, w, h = ROI
-            self.camera._set_zoom([x, y, w, h])
+            self.ROI = ROI
             
         except:
             now = datetime.datetime.now()
@@ -124,7 +123,7 @@ class Camera(object):
 
                 # Set the ProcessOutput object and capture sequence in 1s intervals
                 # until the stop flag occurs
-                self.output = ProcessOutput(self.camPath)
+                self.output = ProcessOutput(self.camPath, self.ROI)
                 self.camera.start_recording(self.output, format='mjpeg')
 
                 while captureStatus == True:
