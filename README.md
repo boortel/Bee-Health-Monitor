@@ -43,3 +43,7 @@ period_threadSensors = 30
 ```
 
 Run the main.py
+
+```
+python3 main.py
+```
