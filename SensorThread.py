@@ -47,7 +47,7 @@ class SensorThread(threading.Thread):
             # Open the csv and write header
             row = ['Timestamp', 'CO2_eq (ppm)', 'TVOC (ppb)', 'TempIn_1 (°C)', 'HumIn_1 (%)', 'TempIn_2 (°C)', 'HumIn_2 (%)', 'TempOut (°C)', 'HumOut (%)', 'Pressure (hPa)', 'Light (-)']
             with open(self.fileName, 'w', newline = '') as csvFile:
-                writer = csv.writer(csvFile)
+                writer = csv.writer(csvFile, delimiter =';')
                 writer.writerow(row)
         except:
             now = datetime.datetime.now()
@@ -85,7 +85,7 @@ class SensorThread(threading.Thread):
 
             try:    
                 with open(self.fileName, 'a', newline = '') as csvFile:
-                    writer = csv.writer(csvFile)
+                    writer = csv.writer(csvFile, delimiter =';')
                     writer.writerow(row)
 
                 logging.info(timeStamp + ': Sensor data were writen to the log.')
@@ -103,7 +103,10 @@ class SensorThread(threading.Thread):
             diff = t2 - t1
 
             if diff < self.periodSensor:
-                time.sleep(diff)
+                while (diff < self.periodSensor) and sensLogStatus:
+                    time.sleep(0.1)
+                    t2 = time.time()
+                    diff = t2 - t1
             else:
                 logging.warning(timeStamp + ': Set period time was exceeded during the current iteration.')
 

@@ -37,7 +37,7 @@ def main():
 
     if t_on > t_off:
         logging.error(timeStamp + ': Capture on time is higher than the off time.')
-        return
+        return -1
 
     # Set the logging stop time and flag
     logOff_year = cfg.getint('General', 'logOff_year')
@@ -51,11 +51,11 @@ def main():
 
     if logStop and now > t_stop:
         logging.error(timeStamp + ': Stop time is smaller than the current time.')
-        return
+        return -1
 
     # Initialize the relay object
     relay = Relay(1, 5)
-
+ 
     # Create the log directory and its structure if it not exists yet
     timeString = now.strftime("%y%m%d_%H%M")
 

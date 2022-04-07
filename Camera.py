@@ -93,6 +93,9 @@ class Camera(object):
 
             # Set the ROI
             self.ROI = ROI
+
+            # Set the ProcessOutput object
+            self.output = ProcessOutput(self.camPath, ROI)
             
         except:
             now = datetime.datetime.now()
@@ -121,9 +124,7 @@ class Camera(object):
                 timeStamp = now.strftime("%y%m%d_%H%M%S")
                 logging.info(timeStamp + ': rPi HQ camera starts capturing.')
 
-                # Set the ProcessOutput object and capture sequence in 1s intervals
-                # until the stop flag occurs
-                self.output = ProcessOutput(self.camPath, self.ROI)
+                # Capture sequence in 1s intervals until the stop flag occurs
                 self.camera.start_recording(self.output, format='mjpeg')
 
                 while captureStatus == True:

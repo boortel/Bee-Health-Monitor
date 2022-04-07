@@ -41,6 +41,11 @@ class ImageProcessor(threading.Thread):
                     # Set done to True if you want the script to terminate
                     # at some point
                     #self.owner.done=True
+
+                except:
+                    now = datetime.datetime.now()
+                    timeStamp = now.strftime("%y%m%d_%H%M%S")
+                    logging.error(timeStamp + ': Attemp to read image stream failed.')
                     
                 finally:
                     # Reset the stream and event
