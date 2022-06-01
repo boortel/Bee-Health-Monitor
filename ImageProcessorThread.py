@@ -34,18 +34,17 @@ class ImageProcessor(threading.Thread):
 
                     # Log the image
                     now = datetime.datetime.now()
-                    imgLog = self.camPath + '/' + now.strftime("%y%m%d_%H%M%S%f") + '.jpg'
+                    imgLog = self.camPath + '/' + now.strftime("%y%m%d_%H%M%S%f") + '.jpeg'
 
                     image.save(imgLog, 'jpeg')
+                    #logging.debug(': Write image as: ' + imgLog + '.')
 
                     # Set done to True if you want the script to terminate
                     # at some point
                     #self.owner.done=True
 
                 except:
-                    now = datetime.datetime.now()
-                    timeStamp = now.strftime("%y%m%d_%H%M%S")
-                    logging.error(timeStamp + ': Attemp to read image stream failed.')
+                    logging.error(': Attemp to read image stream failed.')
                     
                 finally:
                     # Reset the stream and event

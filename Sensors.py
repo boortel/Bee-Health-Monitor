@@ -1,5 +1,6 @@
 import datetime
 import logging
+import time
 
 from numpy import NaN
 
@@ -21,9 +22,7 @@ class DHT11(object):
         try:
             self.DHT11 = seeed_dht.DHT("11", port)
         except:
-            now = datetime.datetime.now()
-            timeStamp = now.strftime("%y%m%d_%H%M%S")
-            logging.error(timeStamp + ': DHT11 sensor ', self.order, ' initialization failure.')
+            logging.error(': DHT11 sensor ', str(self.order), ' initialization failure.')
 
     def measure(self):
         try:
@@ -31,9 +30,7 @@ class DHT11(object):
             self.errorMeasure = 0
         except:
             if self.errorMeasure == 0:
-                now = datetime.datetime.now()
-                timeStamp = now.strftime("%y%m%d_%H%M%S")
-                logging.error(timeStamp + ': DHT11 sensor ', self.order, ' communication (one-wire) failure.')
+                logging.error(': DHT11 sensor ', str(self.order), ' communication (one-wire) failure.')
                 self.errorMeasure = 1
 
             HumIn = NaN
@@ -50,9 +47,7 @@ class SGP30(object):
         try:
             self.SGP30 = seeed_sgp30.grove_sgp30(bus=Bus(1))
         except:
-            now = datetime.datetime.now()
-            timeStamp = now.strftime("%y%m%d_%H%M%S")
-            logging.error(timeStamp + ': Gass sensor ', self.order, ' initialization failure.')
+            logging.error(': Gass sensor ', str(self.order), ' initialization failure.')
     
     def measure(self):
         try:
@@ -61,9 +56,7 @@ class SGP30(object):
             self.errorMeasure = 0
         except:
             if self.errorMeasure == 0:
-                now = datetime.datetime.now()
-                timeStamp = now.strftime("%y%m%d_%H%M%S")
-                logging.error(timeStamp + ': Gass sensor ', self.order, ' communication (I2C) failure.')
+                logging.error(': Gass sensor ', str(self.order), ' communication (I2C) failure.')
                 self.errorMeasure = 1
             
             co2_eq_ppm = NaN
@@ -81,17 +74,13 @@ class SHT31(object):
         try:
             self.SHT31 = seed_sht31.GroveTemperatureHumiditySensorSHT3x(bus=Bus(1))
         except:
-            now = datetime.datetime.now()
-            timeStamp = now.strftime("%y%m%d_%H%M%S")
-            logging.error(timeStamp + ': Atmosphere sensor ', self.order, ' initialization failure.')
+            logging.error(': Atmosphere sensor ', str(self.order), ' initialization failure.')
 
         try:  
             self.QMP69 = 0
             # TODO: Doresit snimani tlaku
         except:
-            now = datetime.datetime.now()
-            timeStamp = now.strftime("%y%m%d_%H%M%S")
-            logging.error(timeStamp + ': Pressure sensor ', self.order, ' initialization failure.')
+            logging.error(': Pressure sensor ', str(self.order), ' initialization failure.')
     
     def measure(self):
         try:
@@ -99,9 +88,7 @@ class SHT31(object):
             self.errorMeasureSHT = 0
         except:
             if self.errorMeasureSHT == 0:
-                now = datetime.datetime.now()
-                timeStamp = now.strftime("%y%m%d_%H%M%S")
-                logging.error(timeStamp + ': Atmosphere sensor ', self.order, ' communication (I2C) failure.')
+                logging.error(': Atmosphere sensor ', str(self.order), ' communication (I2C) failure.')
                 self.errorMeasureSHT = 1
             
             TempOut = NaN
@@ -113,9 +100,7 @@ class SHT31(object):
             self.errorMeasureQMP = 0
         except:
             if self.errorMeasureQMP == 0:
-                now = datetime.datetime.now()
-                timeStamp = now.strftime("%y%m%d_%H%M%S")
-                logging.error(timeStamp + ': Pressure sensor ', self.order, ' communication (I2C) failure.')
+                logging.error(': Pressure sensor ', str(self.order), ' communication (I2C) failure.')
                 self.errorMeasureQMP = 1
 
             PressOut = NaN
@@ -131,9 +116,7 @@ class LightS(object):
         try:
             self.daylg = GroveLightSensor(port)
         except:
-            now = datetime.datetime.now()
-            timeStamp = now.strftime("%y%m%d_%H%M%S")
-            logging.error(timeStamp + ': Atmosphere sensor ', self.order, ' initialization failure.')
+            logging.error(': Light sensor ', str(self.order), ' initialization failure.')
 
     def measure(self):
         try:
@@ -141,9 +124,7 @@ class LightS(object):
             self.errorMeasure = 0
         except:
             if self.errorMeasure == 0:
-                now = datetime.datetime.now()
-                timeStamp = now.strftime("%y%m%d_%H%M%S")
-                logging.error(timeStamp + ': Light sensor ', self.order, ', or hat communication (I2C) failure.')
+                logging.error(': Light sensor ', str(self.order), ', or hat communication (I2C) failure.')
                 self.errorMeasure = 1
             
             lightOut = NaN
@@ -160,9 +141,7 @@ class Relay(object):
         try:
             self.relay = Factory.getGpioWrapper("Relay", port)
         except:
-            now = datetime.datetime.now()
-            timeStamp = now.strftime("%y%m%d_%H%M%S")
-            logging.error(timeStamp + ': Relay ', self.order, ' initialization failure.')
+            logging.error(': Relay ', str(self.order), ' initialization failure.')
                 
 
     def on(self):
@@ -171,9 +150,7 @@ class Relay(object):
             self.errorOn = 0
         except:
             if self.errorOn == 0:
-                now = datetime.datetime.now()
-                timeStamp = now.strftime("%y%m%d_%H%M%S")
-                logging.error(timeStamp + ': Relay ', self.order, ' failure.')
+                logging.error(': Relay ', str(self.order), ' failure.')
                 self.errorOn = 1
 
     def off(self):
@@ -182,7 +159,5 @@ class Relay(object):
             self.erroOff = 0
         except:
             if self.erroOff == 0:
-                now = datetime.datetime.now()
-                timeStamp = now.strftime("%y%m%d_%H%M%S")
-                logging.error(timeStamp + ': Relay ', self.order, ' failure.')
+                logging.error(': Relay ', str(self.order), ' failure.')
                 self.erroOff = 1

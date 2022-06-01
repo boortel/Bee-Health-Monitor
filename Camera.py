@@ -24,6 +24,7 @@ class ProcessOutput(object):
         self.lock = threading.Lock()
         self.pool = [ImageProcessor(self, camPath, ROI) for i in range(4)]
         self.processor = None
+        self.busy = False
 
     def write(self, buf):
         if buf.startswith(b'\xff\xd8'):
@@ -34,14 +35,17 @@ class ProcessOutput(object):
             with self.lock:
                 if self.pool:
                     self.processor = self.pool.pop()
+                    self.busy = False
                 else:
                     # No processor's available, we'll have to skip
                     # this frame; you may want to print a warning
                     # here to see whether you hit this case
-                    now = datetime.datetime.now()
-                    timeStamp = now.strftime("%y%m%d_%H%M%S")
-                    logging.warning(timeStamp + ': No processor available, the frame was skipeed.')
                     self.processor = None
+
+                    if self.busy == False:
+                        logging.warning(': No processor available, the frame was skipeed.')
+                        self.busy = True
+                    
         if self.processor:
             self.processor.stream.write(buf)
 
@@ -83,8 +87,8 @@ class Camera(object):
             time.sleep(2)
 
             # Set the shutter speed and disable automatic setting
-            self.camera.shutter_speed = 1 * exp
             self.camera.exposure_mode = 'off'
+            self.camera.shutter_speed = 1 * exp
 
             # Fix the white balance
             g = self.camera.awb_gains
@@ -93,22 +97,15 @@ class Camera(object):
 
             # Set the ROI
             self.ROI = ROI
-
-            # Set the ProcessOutput object
-            self.output = ProcessOutput(self.camPath, ROI)
             
         except:
-            now = datetime.datetime.now()
-            timeStamp = now.strftime("%y%m%d_%H%M%S")
-            logging.error(timeStamp + ': rPi HQ camera initialization failure.')
+            logging.error(': rPi HQ camera initialization failure.')
 
     def __del__(self):
         try:
             self.camera.close()
         except:
-            now = datetime.datetime.now()
-            timeStamp = now.strftime("%y%m%d_%H%M%S")
-            logging.error(timeStamp + ': rPi HQ camera closing failure.')
+            logging.error(': rPi HQ camera closing failure.')
 
     def capture(self):
         global captureStatus
@@ -120,9 +117,10 @@ class Camera(object):
                 self.camera.stop_recording()
 
             try:
-                now = datetime.datetime.now()
-                timeStamp = now.strftime("%y%m%d_%H%M%S")
-                logging.info(timeStamp + ': rPi HQ camera starts capturing.')
+                logging.info(': rPi HQ camera starts capturing.')
+
+                # Set the ProcessOutput object
+                self.output = ProcessOutput(self.camPath, self.ROI)
 
                 # Capture sequence in 1s intervals until the stop flag occurs
                 self.camera.start_recording(self.output, format='mjpeg')
@@ -132,15 +130,11 @@ class Camera(object):
                 
                 self.camera.stop_recording()
 
-                now = datetime.datetime.now()
-                timeStamp = now.strftime("%y%m%d_%H%M%S")
-                logging.info(timeStamp + ': rPi HQ camera stopped capturing.')
+                logging.info(': rPi HQ camera stopped capturing.')
                     
                 self.errorCapture = 0
                 
             except:
                 if self.errorCapture == 0:
-                    now = datetime.datetime.now()
-                    timeStamp = now.strftime("%y%m%d_%H%M%S")
-                    logging.error(timeStamp + ': Camera capturing failure... ')
+                    logging.error(': Camera capturing failure... ')
                     self.errorCapture = 1

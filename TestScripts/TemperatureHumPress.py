@@ -11,13 +11,13 @@ config = {
 }
 
 sht31 = seed_sht31.GroveTemperatureHumiditySensorSHT3x(bus=Bus(1))
-qmp = QMP6988.PiQmp6988(config)
+#qmp = QMP6988.PiQmp6988(config)
 
 while True:
     temperatureS, humidity = sht31.read()
     print("\r  Temperature SHT = {:05.2f} *C Humidity = {:05.2f} %  ".format(temperatureS, humidity))
 
-    values = qmp.read()
-    print('\r  Temperature BMP = {:05.2f}*C Pressure = {:05.2f} hPa'.format(values['temperature'], values['pressure']))
+    #values = qmp.read()
+    #print('\r  Temperature BMP = {:05.2f}*C Pressure = {:05.2f} hPa'.format(values['temperature'], values['pressure']))
 
     time.sleep(1)

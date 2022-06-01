@@ -46,17 +46,13 @@ class Microphone(object):
             with noalsaerr():
                 self.audio = pyaudio.PyAudio() # create pyaudio instantiation
         except:
-            now = datetime.datetime.now()
-            timeStamp = now.strftime("%y%m%d_%H%M%S")
-            logging.error(timeStamp + ': USB mic initialization failure.')
+            logging.error(': USB mic initialization failure.')
 
     def __del__(self):
         try:
             self.audio.terminate()
         except:
-            now = datetime.datetime.now()
-            timeStamp = now.strftime("%y%m%d_%H%M%S")
-            logging.error(timeStamp + ': USB mic reference closing failure.')
+            logging.error(': USB mic reference closing failure.')
 
     def record(self):
         frames = []
@@ -79,9 +75,7 @@ class Microphone(object):
             self.errorRecord = 0
         except:
             if self.errorRecord == 0:
-                now = datetime.datetime.now()
-                timeStamp = now.strftime("%y%m%d_%H%M%S")
-                logging.error(timeStamp + ': USB mic recording failure.')
+                logging.error(': USB mic recording failure.')
                 self.errorRecord = 1
 
         # Generate the .waw file name
@@ -98,11 +92,9 @@ class Microphone(object):
             wavefile.writeframes(b''.join(frames))
             wavefile.close()
 
-            logging.info(timeStamp + ': Sound data were writen to the log.')
+            logging.info(': Sound data were writen to the log.')
             self.errorSaving = 0
         except:
             if self.errorRecord == 0:
-                now = datetime.datetime.now()
-                timeStamp = now.strftime("%y%m%d_%H%M%S")
-                logging.error(timeStamp + ': Sound data saving failure.')
+                logging.error(': Sound data saving failure.')
                 self.errorRecord = 1

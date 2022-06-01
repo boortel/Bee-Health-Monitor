@@ -6,7 +6,8 @@ import csv
 
 # Import the sensors
 from Microphone import Microphone
-from Sensors import DHT11, SGP30, SHT31, LightS
+from SGP30Thread import SGP30Thread, stopSGP30Thread, queueSGP30, eventSGP30
+from Sensors import DHT11, SHT31, LightS
 
 # Global variable to stop sensor logging
 sensLogStatus = True
@@ -30,7 +31,6 @@ class SensorThread(threading.Thread):
         # Initialize the sensors objects
         self.DHT11_1 = DHT11(1, config.getint('Sensors', 'port_DHT11_1'))
         self.DHT11_2 = DHT11(2, config.getint('Sensors', 'port_DHT11_2'))
-        self.SGP30_1 = SGP30(1)
         self.SHT31_1 = SHT31(1)
         self.Light_1 = LightS(1, config.getint('Sensors', 'port_LightS_1'))
 
@@ -38,11 +38,13 @@ class SensorThread(threading.Thread):
         self.recordTime = config.getint('Sensors', 'recordTime')
         self.microphone = Microphone(self.recordTime, baseLog)
 
+        # Initialize and run the SGP30Thread
+        self.sgp30T = SGP30Thread()
+        self.sgp30T.start()
+
         # Open the log file and create header
         try:
-            now = datetime.datetime.now()
-            timeStamp = now.strftime("%y%m%d_%H%M")
-            self.fileName = baseLog + '/SensorLog_' + timeStamp + '.csv'
+            self.fileName = baseLog + '/SensorLog' + '.csv'
 
             # Open the csv and write header
             row = ['Timestamp', 'CO2_eq (ppm)', 'TVOC (ppb)', 'TempIn_1 (°C)', 'HumIn_1 (%)', 'TempIn_2 (°C)', 'HumIn_2 (%)', 'TempOut (°C)', 'HumOut (%)', 'Pressure (hPa)', 'Light (-)']
@@ -50,9 +52,11 @@ class SensorThread(threading.Thread):
                 writer = csv.writer(csvFile, delimiter =';')
                 writer.writerow(row)
         except:
-            now = datetime.datetime.now()
-            timeStamp = now.strftime("%y%m%d_%H%M")
-            logging.error(timeStamp + ': Initialization of the log file failed.')
+            logging.error(': Initialization of the log file failed.')
+
+    def __del__(self):
+        # Stop the SGP30 thread
+        stopSGP30Thread(True)
 
     def run(self):
         # This loop is run until stopped from main
@@ -62,11 +66,11 @@ class SensorThread(threading.Thread):
 
             # Get the sensor data
             now = datetime.datetime.now()
-            timeStamp = now.strftime("%y%m%d_%H%M%S")
-            timeStampM = now.strftime("%y.%m.%d_%H:%M:%S")
+            timeStampM = now.strftime("%y.%m.%d %H:%M:%S")
 
             # SGP30 - gass sensor
-            co2_eq_ppm, tvoc_ppb = self.SGP30_1.measure()
+            eventSGP30.set()
+            co2_eq_ppm, tvoc_ppb = queueSGP30.get()
 
             # DHT11 - inner temperature and humidity
             HumIn_1, TempIn_1 = self.DHT11_1.measure()
@@ -88,11 +92,11 @@ class SensorThread(threading.Thread):
                     writer = csv.writer(csvFile, delimiter =';')
                     writer.writerow(row)
 
-                logging.info(timeStamp + ': Sensor data were writen to the log.')
+                logging.info(': Sensor data were writen to the log.')
                 self.errorLog = 0
             except:
                 if self.errorLog == 0:
-                    logging.error(timeStamp + ': Writing to log file failed.')
+                    logging.error(': Writing to log file failed.')
                     self.errorLog = 1
 
             # Record the sound
@@ -108,5 +112,5 @@ class SensorThread(threading.Thread):
                     t2 = time.time()
                     diff = t2 - t1
             else:
-                logging.warning(timeStamp + ': Set period time was exceeded during the current iteration.')
+                logging.warning(': Set period time was exceeded during the current iteration.')
 
