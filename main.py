@@ -20,8 +20,11 @@ def main():
     timeString = now.strftime("%y%m%d_%H%M")
 
     ## Open the ini file
+    base_path = os.path.dirname(os.path.realpath(__file__))
+    cfg_path = os.path.join(base_path, 'BeeLogger.ini')
+
     cfg = configparser.ConfigParser()
-    cfg.read('BeeLogger.ini')
+    cfg.read(cfg_path)
  
     ## Create the log directory and its structure if it not exists yet
     
@@ -32,7 +35,8 @@ def main():
         logPath = '/media/pi/' + driveName + '/log/Log_' + timeString
         driveSet = False
     else:
-        logPath = '/home/pi/Documents/BeeLogger/log/Log_' + timeString
+        logPath = 'log/Log_' + timeString
+        logPath = os.path.join(base_path, logPath)
         driveSet = True
 
     if not os.path.exists(logPath):

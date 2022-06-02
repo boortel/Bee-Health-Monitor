@@ -1,15 +1,22 @@
 from picamera import PiCamera
 from time import sleep
 
-camera = PiCamera()
+import sys
+import os
 
-sleep(2)
+def main():
+    camera = PiCamera()
+    sleep(2)
 
-camera._set_zoom([1.0, 1.0, 0.5, 0.5])
+    try:
+        camera.start_preview()
+    except KeyboardInterrupt:
+        camera.stop_preview()
 
-camera.start_preview()
-sleep(10)
-camera.stop_preview()
+if __name__ == '__main__':
+    main()
 
-temp = camera._get_zoom()
-print(temp)
+    try:
+        sys.exit(0)
+    except SystemExit:
+        os._exit(0)

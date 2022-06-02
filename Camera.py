@@ -1,11 +1,17 @@
+import configparser
 import threading
 import datetime
 import logging
+import json
 import time
 import os
 
+from functools import partial
 from picamera import PiCamera
 from ImageProcessorThread import ImageProcessor
+
+from BeeCounter.tracker import Tunnel
+from BeeCounter.BeeCounterThread import BeeCounterThread, eventBeeCounter
 
 # Global variable to pause camera capturing
 captureStatus = True
@@ -25,6 +31,37 @@ class ProcessOutput(object):
         self.pool = [ImageProcessor(self, camPath, ROI) for i in range(4)]
         self.processor = None
         self.busy = False
+
+        # Prepare the bee counter code
+        logging.basicConfig(level=logging.DEBUG, format='(%(threadName)-5s) %(message)s')
+
+        base_path = os.path.dirname(os.path.realpath(__file__))
+
+        # Get and parse the configuration file 
+        cfg_path = os.path.join(base_path, 'BeeCounter/bee_counter.ini')
+        cfg = configparser.ConfigParser()
+        cfg.read(cfg_path)
+
+        sections = cfg.getint('ImageProcessing', 'sections')
+        arrived_threshold = cfg.getfloat('ImageProcessing', 'arrived_threshold')
+        left_threshold = cfg.getfloat('ImageProcessing', 'left_threshold')
+        track_max_age = cfg.getint('ImageProcessing', 'track_max_age')
+        background_init_from_file = cfg.getboolean('ImageProcessing', 'background_init_from_file')
+
+        # Get the initial background from file
+        if background_init_from_file:
+            background_init_frame = cv2.imread(os.path.join(base_path, 'data', 'background.jpg'))
+        
+        # Initialize the tunnels
+        tunnel_func = partial(Tunnel, sections=sections, track_max_age=track_max_age, arrived_threshold=arrived_threshold, left_threshold=left_threshold, background_init_frame=background_init_frame)
+        tunnel_args = json.loads(cfg.get('ImageProcessing', 'bins'))
+
+        # Run the beeCounter thread
+        beeCounter = BeeCounterThread(tunnel_func, tunnel_args, 'BeeCounterThread')
+        beeCounter.start()
+
+    def __del__(self):
+        eventBeeCounter.clear()
 
     def write(self, buf):
         if buf.startswith(b'\xff\xd8'):

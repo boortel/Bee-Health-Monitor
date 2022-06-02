@@ -5,6 +5,8 @@ import io
 
 from PIL import Image
 
+from BeeCounter.BeeCounterThread import queueBeeCounter
+
 # Image processing thread
 class ImageProcessor(threading.Thread):
     def __init__(self, owner, camPath, ROI):
@@ -29,8 +31,9 @@ class ImageProcessor(threading.Thread):
                     # Read the image and do some processing on it
                     image = Image.open(self.stream)
                     image = image.crop(self.ROI)
-                    #...
-                    #...
+                    
+                    # Put the image to the BeeCounter queue
+                    queueBeeCounter.put(image)
 
                     # Log the image
                     now = datetime.datetime.now()

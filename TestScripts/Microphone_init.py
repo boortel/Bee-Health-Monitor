@@ -1,7 +1,8 @@
 from ctypes import *
 from contextlib import contextmanager
 import pyaudio
-import wave
+import sys
+import os
 
 # Error handler code
 ERROR_HANDLER_FUNC = CFUNCTYPE(None, c_char_p, c_int, c_char_p, c_int, c_char_p)
@@ -18,8 +19,19 @@ def noalsaerr():
     yield
     asound.snd_lib_error_set_handler(None)
 
-with noalsaerr():
-    p = pyaudio.PyAudio()
+def main():
+    with noalsaerr():
+        p = pyaudio.PyAudio()
 
-for ii in range(p.get_device_count()):
-    print(p.get_device_info_by_index(ii).get('name'))
+    for ii in range(p.get_device_count()):
+        print(p.get_device_info_by_index(ii).get('name'))
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        print('Interrupted')
+        try:
+            sys.exit(0)
+        except SystemExit:
+            os._exit(0)
