@@ -11,7 +11,15 @@ import seeed_sgp30
 from grove.i2c import Bus
 from grove.factory import Factory
 from grove.grove_light_sensor_v1_2 import GroveLightSensor
+from ..TempPress.piqmp6988sm import piqmp6988 as QMP6988
 import grove.grove_temperature_humidity_sensor_sht3x as seed_sht31
+
+config = {
+    'temperature' : QMP6988.Oversampling.X4.value,
+    'pressure' :    QMP6988.Oversampling.X32.value,
+    'filter' :      QMP6988.Filter.COEFFECT_32.value,
+    'mode' :        QMP6988.Powermode.NORMAL.value
+} 
 
 class DHT11(object):
     # Class to control DHT11 temperature and humidity sensor
@@ -77,8 +85,7 @@ class SHT31(object):
             logging.error(': Atmosphere sensor ', str(self.order), ' initialization failure.')
 
         try:  
-            self.QMP69 = 0
-            # TODO: Doresit snimani tlaku
+            self.qmp = QMP6988.PiQmp6988(config)
         except:
             logging.error(': Pressure sensor ', str(self.order), ' initialization failure.')
     
@@ -95,8 +102,9 @@ class SHT31(object):
             HumOut = NaN
 
         try:
-            PressOut = 0
-            # TODO: Doresit snimani tlaku
+            values = self.qmp.read()
+            PressOut = values['pressure']
+
             self.errorMeasureQMP = 0
         except:
             if self.errorMeasureQMP == 0:
