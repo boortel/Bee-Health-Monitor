@@ -9,6 +9,9 @@ from Microphone import Microphone
 from SGP30Thread import SGP30Thread, stopSGP30Thread, queueSGP30, eventSGP30
 from Sensors import DHT11, SHT31, LightS
 
+# Import the bee counters
+from BeeCounter.BeeCounterThread import eventBeeCounterRead, queueBeeCounterRead
+
 # Global variable to stop sensor logging
 sensLogStatus = True
 
@@ -47,7 +50,7 @@ class SensorThread(threading.Thread):
             self.fileName = baseLog + '/SensorLog' + '.csv'
 
             # Open the csv and write header
-            row = ['Timestamp', 'CO2_eq (ppm)', 'TVOC (ppb)', 'TempIn_1 (°C)', 'HumIn_1 (%)', 'TempIn_2 (°C)', 'HumIn_2 (%)', 'TempOut (°C)', 'HumOut (%)', 'Pressure (hPa)', 'Light (-)']
+            row = ['Timestamp', 'CO2_eq (ppm)', 'TVOC (ppb)', 'TempIn_1 (°C)', 'HumIn_1 (%)', 'TempIn_2 (°C)', 'HumIn_2 (%)', 'TempOut (°C)', 'HumOut (%)', 'Pressure (hPa)', 'Light (-)', 'BeeIn (-)', 'BeeOut (-)']
             with open(self.fileName, 'w', newline = '') as csvFile:
                 writer = csv.writer(csvFile, delimiter =';')
                 writer.writerow(row)
@@ -81,11 +84,16 @@ class SensorThread(threading.Thread):
 
             # Light sensor value
             Light = self.Light_1.measure()
+
+            # Get the bee counters
+            eventBeeCounterRead.set()
+            BeeIn, BeeOut = queueBeeCounterRead.get()
             
             # Create log
             row = [f'{timeStampM:s}', f'{co2_eq_ppm}', f'{tvoc_ppb}', f'{float(TempIn_1):.2f}', 
                 f'{float(HumIn_1):.2f}', f'{float(TempIn_2):.2f}', f'{float(HumIn_2):.2f}', 
-                f'{float(TempOut):.2f}', f'{float(HumOut):.2f}', f'{PressOut}', f'{Light}']
+                f'{float(TempOut):.2f}', f'{float(HumOut):.2f}', f'{PressOut}', f'{Light}',
+                f'{BeeIn}', f'{BeeOut}']
 
             try:    
                 with open(self.fileName, 'a', newline = '') as csvFile:

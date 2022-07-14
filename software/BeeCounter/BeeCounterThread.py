@@ -5,8 +5,13 @@ import time
 import numpy as np
 
 BUFF_SIZE = 10
+queueBeeCounterRead = queue.Queue(BUFF_SIZE)
 queueBeeCounter = queue.Queue(BUFF_SIZE)
+
+eventBeeCounterRead = threading.Event()
 eventBeeCounter = threading.Event()
+
+eventBeeCounterRead.clear()
 eventBeeCounter.set()
 
 class BeeCounterThread(threading.Thread):
@@ -18,12 +23,31 @@ class BeeCounterThread(threading.Thread):
 
     def run(self):
         while eventBeeCounter.is_set():
+
             if queueBeeCounter.empty():
                 time.sleep(0.01)
                 continue
+
             img = queueBeeCounter.get()
             logging.debug(f'Getting img : {str(queueBeeCounter.qsize())} items in queue')
+            
             # RGB -> BGR
             img = np.asarray(img)[..., ::-1]
             for processor in self.processors:
                 processor.update(img)
+
+            if eventBeeCounterRead.is_set():
+                counterIn = 0
+                counterOut = 0
+                
+                # Get the total number of bees in the single tunnels and restart the tunnel counters
+                for counter in self.counters:
+                    counterIn = counterIn + counter['up']
+                    counter['up'] = 0
+
+                    counterOut = counterOut + counter['down']
+                    counter['down'] = 0
+                
+                # Put the data to the quee and free the BeeCounterRead event
+                queueBeeCounterRead.put([counterIn, counterOut])
+                eventBeeCounterRead.clear()
