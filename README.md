@@ -1,44 +1,19 @@
-# BeeLogger
+# BeeLogger Project
 
-### Setup
-Download and install Raspberry OS Buster for rPI4 (grove.py is not compatible with the Bullseye!)
+It is an open-source project that aims to create a bee health tracking device.
 
-Install the latest grove.py:
+<img src="media/overview.PNG" width=50%>
 
-```
-curl -sL https://github.com/Seeed-Studio/grove.py/raw/master/install.sh | sudo bash -s -
-```
+TODO: Put a real life image here.
 
-Clone this repo and install the requirements:
+### Keywords
 
-```
-pip install -r requirements.txt
-```
+Bees, Health, Camera, Sensory, Neural Networks, AI
 
-Set the usb drive name, illumination times, logging termination time (optional) and the sensor logging period in the file BeeLogger.ini
+## Software
 
-```
-# USB drive name
-driveName = BEELOGGER
-# Illumination turn on and off times
-lightOn_hour = 6
-lightOn_minute = 30
-lightOff_hour = 18
-lightOff_minute = 30
-# Logging stop time
-logOff_year = 2022
-logOff_month = 4
-logOff_day = 1
-logOff_hour = 12
-logOff_minute = 10
-# Flag to set timed logging
-logStop = True
-# Thread call period [s]
-period_threadSensors = 30
-```
+TODO
 
-Run the main.py
+## Hardware
 
-```
-python3 main.py
-```
+The complete overview of device 3D printing, laser cutting, assembly and inner electrical installation.
