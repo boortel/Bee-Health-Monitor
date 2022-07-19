@@ -11,7 +11,7 @@ import seeed_sgp30
 from grove.i2c import Bus
 from grove.factory import Factory
 from grove.grove_light_sensor_v1_2 import GroveLightSensor
-from ..TempPress.piqmp6988sm import piqmp6988 as QMP6988
+from TempPress import piqmp6988SM as QMP6988
 import grove.grove_temperature_humidity_sensor_sht3x as seed_sht31
 
 config = {
@@ -84,7 +84,7 @@ class SHT31(object):
         except:
             logging.error(': Atmosphere sensor ', str(self.order), ' initialization failure.')
 
-        try:  
+        try:
             self.qmp = QMP6988.PiQmp6988(config)
         except:
             logging.error(': Pressure sensor ', str(self.order), ' initialization failure.')

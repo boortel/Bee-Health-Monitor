@@ -9,7 +9,7 @@ from BeeCounter.BeeCounterThread import queueBeeCounter
 
 # Image processing thread
 class ImageProcessor(threading.Thread):
-    def __init__(self, owner, camPath, ROI):
+    def __init__(self, owner, camPath, ROI, log_dec):
         super(ImageProcessor, self).__init__()
         self.stream = io.BytesIO()
         self.event = threading.Event()
@@ -18,6 +18,10 @@ class ImageProcessor(threading.Thread):
 
         self.camPath = camPath
         self.ROI = ROI
+        self.log_dec = log_dec
+
+        self.counter = 0
+
         self.start()
 
     def run(self):
@@ -35,12 +39,17 @@ class ImageProcessor(threading.Thread):
                     # Put the image to the BeeCounter queue
                     queueBeeCounter.put(image)
 
-                    # Log the image
-                    now = datetime.datetime.now()
-                    imgLog = self.camPath + '/' + now.strftime("%y%m%d_%H%M%S%f") + '.jpeg'
+                    # Iterate the logging counter
+                    self.counter += 1
 
-                    image.save(imgLog, 'jpeg')
-                    #logging.debug(': Write image as: ' + imgLog + '.')
+                    # Log the image
+                    if self.counter >= self.log_dec:
+                        now = datetime.datetime.now()
+                        imgLog = self.camPath + '/' + now.strftime("%y%m%d_%H%M%S%f") + '.jpeg'
+
+                        image.save(imgLog, 'jpeg')
+                        #logging.debug(': Write image as: ' + imgLog + '.')
+                        self.counter = 0
 
                     # Set done to True if you want the script to terminate
                     # at some point

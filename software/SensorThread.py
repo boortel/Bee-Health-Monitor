@@ -4,6 +4,8 @@ import logging
 import time
 import csv
 
+from numpy import NaN
+
 # Import the sensors
 from Microphone import Microphone
 from SGP30Thread import SGP30Thread, stopSGP30Thread, queueSGP30, eventSGP30
@@ -59,7 +61,7 @@ class SensorThread(threading.Thread):
 
     def __del__(self):
         # Stop the SGP30 thread
-        stopSGP30Thread(True)
+        stopSGP30Thread()
 
     def run(self):
         # This loop is run until stopped from main
@@ -72,8 +74,12 @@ class SensorThread(threading.Thread):
             timeStampM = now.strftime("%y.%m.%d %H:%M:%S")
 
             # SGP30 - gass sensor
-            eventSGP30.set()
-            co2_eq_ppm, tvoc_ppb = queueSGP30.get()
+            try:
+                eventSGP30.set()
+                co2_eq_ppm, tvoc_ppb = queueSGP30.get(timeout = 5)
+            except:
+                co2_eq_ppm = NaN
+                tvoc_ppb = NaN
 
             # DHT11 - inner temperature and humidity
             HumIn_1, TempIn_1 = self.DHT11_1.measure()
@@ -86,13 +92,17 @@ class SensorThread(threading.Thread):
             Light = self.Light_1.measure()
 
             # Get the bee counters
-            eventBeeCounterRead.set()
-            BeeIn, BeeOut = queueBeeCounterRead.get()
+            try:
+                eventBeeCounterRead.set()
+                BeeIn, BeeOut = queueBeeCounterRead.get(timeout = 5)
+            except:
+                BeeIn = 0
+                BeeOut = 0
             
             # Create log
             row = [f'{timeStampM:s}', f'{co2_eq_ppm}', f'{tvoc_ppb}', f'{float(TempIn_1):.2f}', 
                 f'{float(HumIn_1):.2f}', f'{float(TempIn_2):.2f}', f'{float(HumIn_2):.2f}', 
-                f'{float(TempOut):.2f}', f'{float(HumOut):.2f}', f'{PressOut}', f'{Light}',
+                f'{float(TempOut):.2f}', f'{float(HumOut):.2f}', f'{float(PressOut):.2f}', f'{Light}',
                 f'{BeeIn}', f'{BeeOut}']
 
             try:    

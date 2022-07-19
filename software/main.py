@@ -44,6 +44,7 @@ def main():
 
     # Initialize program logging
     logging.basicConfig(filename = logPath + '/ProgramLog.txt',  level=logging.DEBUG, format='(%(asctime)s %(threadName)-10s %(levelname)-7s) %(message)s',)
+    #logging.basicConfig(level=logging.DEBUG, format='(%(asctime)s %(threadName)-10s %(levelname)-7s) %(message)s',)
 
     # Log warning message if the drive not set
     if driveSet:

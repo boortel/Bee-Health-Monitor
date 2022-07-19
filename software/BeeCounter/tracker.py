@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 
-from background import BackgroundModel
+from BeeCounter.background import BackgroundModel
 
 
 class State:

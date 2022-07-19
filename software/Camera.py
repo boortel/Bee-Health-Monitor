@@ -4,6 +4,7 @@ import datetime
 import logging
 import json
 import time
+import cv2
 import os
 
 from functools import partial
@@ -23,45 +24,52 @@ def setCaptureStatus(status):
 
 # Object to create image processing and saving threads
 class ProcessOutput(object):
-    def __init__(self, camPath, ROI):
+    def __init__(self, camPath, ROI, log_dec):
         self.done = False
         # Construct a pool of 4 image processors along with a lock
         # to control access between threads
         self.lock = threading.Lock()
-        self.pool = [ImageProcessor(self, camPath, ROI) for i in range(4)]
+        self.pool = [ImageProcessor(self, camPath, ROI, log_dec) for i in range(4)]
         self.processor = None
         self.busy = False
 
-        # Prepare the bee counter code
-        logging.basicConfig(level=logging.DEBUG, format='(%(threadName)-5s) %(message)s')
+        try:
+            # Prepare the bee counter code
+            base_path = os.path.dirname(os.path.realpath(__file__))
 
-        base_path = os.path.dirname(os.path.realpath(__file__))
+            # Get and parse the configuration file 
+            cfg_path = os.path.join(base_path, 'BeeCounter/bee_counter.ini')
+            cfg = configparser.ConfigParser()
+            cfg.read(cfg_path)
 
-        # Get and parse the configuration file 
-        cfg_path = os.path.join(base_path, 'BeeCounter/bee_counter.ini')
-        cfg = configparser.ConfigParser()
-        cfg.read(cfg_path)
+            sections = cfg.getint('ImageProcessing', 'sections')
+            arrived_threshold = cfg.getfloat('ImageProcessing', 'arrived_threshold')
+            left_threshold = cfg.getfloat('ImageProcessing', 'left_threshold')
+            track_max_age = cfg.getint('ImageProcessing', 'track_max_age')
+            background_init_from_file = cfg.getboolean('ImageProcessing', 'background_init_from_file')
 
-        sections = cfg.getint('ImageProcessing', 'sections')
-        arrived_threshold = cfg.getfloat('ImageProcessing', 'arrived_threshold')
-        left_threshold = cfg.getfloat('ImageProcessing', 'left_threshold')
-        track_max_age = cfg.getint('ImageProcessing', 'track_max_age')
-        background_init_from_file = cfg.getboolean('ImageProcessing', 'background_init_from_file')
+            # Get the initial background from file
+            if background_init_from_file:
+                background_init_frame = cv2.imread(os.path.join(base_path, 'BeeCounter/data', 'background.jpg'))
+            
+            # Initialize the tunnels
+            tunnel_func = partial(Tunnel, sections=sections, track_max_age=track_max_age, arrived_threshold=arrived_threshold, left_threshold=left_threshold, background_init_frame=background_init_frame)
+            tunnel_args = json.loads(cfg.get('ImageProcessing', 'bins'))
 
-        # Get the initial background from file
-        if background_init_from_file:
-            background_init_frame = cv2.imread(os.path.join(base_path, 'data', 'background.jpg'))
-        
-        # Initialize the tunnels
-        tunnel_func = partial(Tunnel, sections=sections, track_max_age=track_max_age, arrived_threshold=arrived_threshold, left_threshold=left_threshold, background_init_frame=background_init_frame)
-        tunnel_args = json.loads(cfg.get('ImageProcessing', 'bins'))
+            # Run the beeCounter thread
+            self.beeCounter = BeeCounterThread(tunnel_func, tunnel_args, 'BeeCounterThread')
+            self.beeCounter.start()
 
-        # Run the beeCounter thread
-        beeCounter = BeeCounterThread(tunnel_func, tunnel_args, 'BeeCounterThread')
-        beeCounter.start()
+        except:
+            logging.error(': BeeCounter thread initialization failure.')
 
     def __del__(self):
-        eventBeeCounter.clear()
+        
+        try:
+            eventBeeCounter.clear()
+            self.beeCounter.stop()
+        except:
+            logging.error(': BeeCounter thread closing failure.')
 
     def write(self, buf):
         if buf.startswith(b'\xff\xd8'):
@@ -109,7 +117,7 @@ class ProcessOutput(object):
 
 class Camera(object):
     # Class to control rPi HQ camera
-    def __init__(self, fps, exp, iso, ROI, logPath):
+    def __init__(self, fps, exp, iso, ROI, logPath, log_dec):
         self.errorCapture = 0
 
         # Camera log base path
@@ -128,12 +136,13 @@ class Camera(object):
             self.camera.shutter_speed = 1 * exp
 
             # Fix the white balance
-            g = self.camera.awb_gains
-            self.camera.awb_mode = 'off'
-            self.camera.awb_gains = g
+            #g = self.camera.awb_gains
+            #self.camera.awb_mode = 'off'
+            #self.camera.awb_gains = g
 
-            # Set the ROI
+            # Set the ROI and logging decimation factor
             self.ROI = ROI
+            self.log_dec = log_dec
             
         except:
             logging.error(': rPi HQ camera initialization failure.')
@@ -157,7 +166,7 @@ class Camera(object):
                 logging.info(': rPi HQ camera starts capturing.')
 
                 # Set the ProcessOutput object
-                self.output = ProcessOutput(self.camPath, self.ROI)
+                self.output = ProcessOutput(self.camPath, self.ROI, self.log_dec)
 
                 # Capture sequence in 1s intervals until the stop flag occurs
                 self.camera.start_recording(self.output, format='mjpeg')

@@ -36,7 +36,9 @@ class CameraThread(threading.Thread):
         ROI = (config.getfloat('Camera', 'left'), config.getfloat('Camera', 'top'), \
                config.getfloat('Camera', 'right'), config.getfloat('Camera', 'bottom'))
 
-        self.camera = Camera(fps, exp, iso, ROI, baseLog)
+        log_dec = config.getint('Camera', 'log_dec')
+
+        self.camera = Camera(fps, exp, iso, ROI, baseLog, log_dec)
 
     def run(self):
         # This loop is run until stopped from main

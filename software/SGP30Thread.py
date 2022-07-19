@@ -32,8 +32,6 @@ class SGP30Thread(threading.Thread):
 
             # Get the data from SGP30 and sleep 1s
             co2_eq_ppm, tvoc_ppb = self.SGP30_1.measure()
-            print(co2_eq_ppm)
-            print(tvoc_ppb)
             time.sleep(1)
 
             # Put the data to the queue
