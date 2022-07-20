@@ -34,6 +34,12 @@ def main():
     if driveName != 'NaN':
         logPath = '/media/pi/' + driveName + '/log/Log_' + timeString
         driveSet = False
+
+        cfg_path = '/media/pi/' + driveName + '/BeeLogger.ini'
+        # Reload the ini file from USB drive if present
+        if os.path.exists(cfg_path):
+            cfg.read(cfg_path)
+
     else:
         logPath = 'log/Log_' + timeString
         logPath = os.path.join(base_path, logPath)

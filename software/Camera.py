@@ -33,44 +33,6 @@ class ProcessOutput(object):
         self.processor = None
         self.busy = False
 
-        try:
-            # Prepare the bee counter code
-            base_path = os.path.dirname(os.path.realpath(__file__))
-
-            # Get and parse the configuration file 
-            cfg_path = os.path.join(base_path, 'BeeCounter/bee_counter.ini')
-            cfg = configparser.ConfigParser()
-            cfg.read(cfg_path)
-
-            sections = cfg.getint('ImageProcessing', 'sections')
-            arrived_threshold = cfg.getfloat('ImageProcessing', 'arrived_threshold')
-            left_threshold = cfg.getfloat('ImageProcessing', 'left_threshold')
-            track_max_age = cfg.getint('ImageProcessing', 'track_max_age')
-            background_init_from_file = cfg.getboolean('ImageProcessing', 'background_init_from_file')
-
-            # Get the initial background from file
-            if background_init_from_file:
-                background_init_frame = cv2.imread(os.path.join(base_path, 'BeeCounter/data', 'background.jpg'))
-            
-            # Initialize the tunnels
-            tunnel_func = partial(Tunnel, sections=sections, track_max_age=track_max_age, arrived_threshold=arrived_threshold, left_threshold=left_threshold, background_init_frame=background_init_frame)
-            tunnel_args = json.loads(cfg.get('ImageProcessing', 'bins'))
-
-            # Run the beeCounter thread
-            self.beeCounter = BeeCounterThread(tunnel_func, tunnel_args, 'BeeCounterThread')
-            self.beeCounter.start()
-
-        except:
-            logging.error(': BeeCounter thread initialization failure.')
-
-    def __del__(self):
-        
-        try:
-            eventBeeCounter.clear()
-            self.beeCounter.stop()
-        except:
-            logging.error(': BeeCounter thread closing failure.')
-
     def write(self, buf):
         if buf.startswith(b'\xff\xd8'):
             # New frame; set the current processor going and grab
@@ -147,11 +109,47 @@ class Camera(object):
         except:
             logging.error(': rPi HQ camera initialization failure.')
 
+        try:
+            # Prepare the bee counter code
+            base_path = os.path.dirname(os.path.realpath(__file__))
+
+            # Get and parse the configuration file 
+            cfg_path = os.path.join(base_path, 'BeeCounter/bee_counter.ini')
+            cfg = configparser.ConfigParser()
+            cfg.read(cfg_path)
+
+            sections = cfg.getint('ImageProcessing', 'sections')
+            arrived_threshold = cfg.getfloat('ImageProcessing', 'arrived_threshold')
+            left_threshold = cfg.getfloat('ImageProcessing', 'left_threshold')
+            track_max_age = cfg.getint('ImageProcessing', 'track_max_age')
+            background_init_from_file = cfg.getboolean('ImageProcessing', 'background_init_from_file')
+
+            # Get the initial background from file
+            if background_init_from_file:
+                background_init_frame = cv2.imread(os.path.join(base_path, 'BeeCounter/data', 'background.jpg'))
+            
+            # Initialize the tunnels
+            tunnel_func = partial(Tunnel, sections=sections, track_max_age=track_max_age, arrived_threshold=arrived_threshold, left_threshold=left_threshold, background_init_frame=background_init_frame)
+            tunnel_args = json.loads(cfg.get('ImageProcessing', 'bins'))
+
+            # Run the beeCounter thread
+            self.beeCounter = BeeCounterThread(tunnel_func, tunnel_args, 'BeeCounterThread')
+            self.beeCounter.start()
+
+        except:
+            logging.error(': BeeCounter thread initialization failure.')
+
     def __del__(self):
         try:
             self.camera.close()
         except:
             logging.error(': rPi HQ camera closing failure.')
+
+        try:
+            eventBeeCounter.clear()
+            self.beeCounter.stop()
+        except:
+            logging.error(': BeeCounter thread closing failure.')
 
     def capture(self):
         global captureStatus
