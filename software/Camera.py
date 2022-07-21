@@ -98,9 +98,9 @@ class Camera(object):
             self.camera.shutter_speed = 1 * exp
 
             # Fix the white balance
-            #g = self.camera.awb_gains
-            #self.camera.awb_mode = 'off'
-            #self.camera.awb_gains = g
+            g = self.camera.awb_gains
+            self.camera.awb_mode = 'off'
+            self.camera.awb_gains = g
 
             # Set the ROI and logging decimation factor
             self.ROI = ROI
