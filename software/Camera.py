@@ -9,18 +9,15 @@ import os
 
 from functools import partial
 from picamera import PiCamera
+
+from Sensors import Relay
 from ImageProcessorThread import ImageProcessor
 
 from BeeCounter.tracker import Tunnel
 from BeeCounter.BeeCounterThread import BeeCounterThread, eventBeeCounter
 
-# Global variable to pause camera capturing
-captureStatus = True
-
-# Function to set the capture pause control variable
-def setCaptureStatus(status):
-    global captureStatus
-    captureStatus = status
+# Event to stop camera capturing
+eventCamera_capture = threading.Event()
 
 # Object to create image processing and saving threads
 class ProcessOutput(object):
@@ -105,6 +102,8 @@ class Camera(object):
             # Set the ROI and logging decimation factor
             self.ROI = ROI
             self.log_dec = log_dec
+
+            self.greenLED = Relay(2, 22)
             
         except:
             logging.error(': rPi HQ camera initialization failure.')
@@ -152,9 +151,8 @@ class Camera(object):
             logging.error(': BeeCounter thread closing failure.')
 
     def capture(self):
-        global captureStatus
 
-        if captureStatus == True:
+        if eventCamera_capture.is_set():
 
             # Stop the capturing if run by accident
             if self.camera.recording == True:
@@ -169,10 +167,12 @@ class Camera(object):
                 # Capture sequence in 1s intervals until the stop flag occurs
                 self.camera.start_recording(self.output, format='mjpeg')
 
-                while captureStatus == True:
+                while eventCamera_capture.is_set():
                     self.camera.wait_recording(1)
+                    self.greenLED.toggle()
                 
                 self.camera.stop_recording()
+                self.greenLED.off()
 
                 logging.info(': rPi HQ camera stopped capturing.')
                     

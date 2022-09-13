@@ -1,11 +1,9 @@
-import datetime
-import logging
 import time
+import logging
 
 from numpy import NaN
 
 # Import Grove stuff
-# TODO: Doresit snimani tlaku
 import seeed_dht
 import seeed_sgp30
 from grove.i2c import Bus
@@ -25,8 +23,8 @@ class DHT11(object):
     # Class to control DHT11 temperature and humidity sensor
     def __init__(self,  order, port):
         self.errorMeasure = 0
-
         self.order = order
+
         try:
             self.DHT11 = seeed_dht.DHT("11", port)
         except:
@@ -34,8 +32,15 @@ class DHT11(object):
 
     def measure(self):
         try:
-            HumIn, TempIn = self.DHT11.read()
-            self.errorMeasure = 0
+            # Initialize the value arrays
+            HumIn = [0]*5
+            TempIn = [0]*5
+
+            # Get 5 values for a floating average computation
+            for i in range(5):
+                HumIn[i], TempIn[i] = self.DHT11.read()
+                self.errorMeasure = 0
+                time.sleep(1)
         except:
             if self.errorMeasure == 0:
                 logging.error(': DHT11 sensor ', str(self.order), ' communication (one-wire) failure.')
@@ -44,14 +49,17 @@ class DHT11(object):
             HumIn = NaN
             TempIn = NaN
 
+        HumIn = sum(HumIn)/5
+        TempIn = sum(TempIn)/5
+
         return HumIn, TempIn
 
 class SGP30(object):
     # Class to control SGP30 gass sensor
     def __init__(self, order):
         self.errorMeasure = 0
-
         self.order = order
+
         try:
             self.SGP30 = seeed_sgp30.grove_sgp30(bus=Bus(1))
         except:
@@ -59,9 +67,17 @@ class SGP30(object):
     
     def measure(self):
         try:
-            gData = self.SGP30.read_measurements()
-            co2_eq_ppm, tvoc_ppb = gData.data
-            self.errorMeasure = 0
+            # Initialize the value arrays
+            co2_eq_ppm = [0]*5
+            tvoc_ppb = [0]*5
+
+            # Get 5 values for a floating average computation
+            for i in range(5):
+                gData = self.SGP30.read_measurements()
+                co2_eq_ppm[i], tvoc_ppb[i] = gData.data
+
+                self.errorMeasure = 0
+                time.sleep(1)
         except:
             if self.errorMeasure == 0:
                 logging.error(': Gass sensor ', str(self.order), ' communication (I2C) failure.')
@@ -69,6 +85,9 @@ class SGP30(object):
             
             co2_eq_ppm = NaN
             tvoc_ppb = NaN
+
+        co2_eq_ppm = sum(co2_eq_ppm)/5
+        tvoc_ppb = sum(tvoc_ppb)/5
 
         return co2_eq_ppm, tvoc_ppb
 
@@ -91,8 +110,15 @@ class SHT31(object):
     
     def measure(self):
         try:
-            TempOut, HumOut = self.SHT31.read()
-            self.errorMeasureSHT = 0
+            # Initialize the value arrays
+            TempOut = [0]*5
+            HumOut = [0]*5
+
+            # Get 5 values for a floating average computation
+            for i in range(5):
+                TempOut[i], HumOut[i] = self.SHT31.read()
+                self.errorMeasureSHT = 0
+                time.sleep(1)
         except:
             if self.errorMeasureSHT == 0:
                 logging.error(': Atmosphere sensor ', str(self.order), ' communication (I2C) failure.')
@@ -101,11 +127,20 @@ class SHT31(object):
             TempOut = NaN
             HumOut = NaN
 
-        try:
-            values = self.qmp.read()
-            PressOut = values['pressure']
+        TempOut = sum(TempOut)/5
+        HumOut = sum(HumOut)/5
 
-            self.errorMeasureQMP = 0
+        try:
+            # Initialize the value arrays
+            PressOut = [0]*5
+
+            # Get 5 values for a floating average computation
+            for i in range(5):
+                values = self.qmp.read()
+                PressOut[i] = values['pressure']
+
+                self.errorMeasureQMP = 0
+                time.sleep(1)
         except:
             if self.errorMeasureQMP == 0:
                 logging.error(': Pressure sensor ', str(self.order), ' communication (I2C) failure.')
@@ -113,14 +148,16 @@ class SHT31(object):
 
             PressOut = NaN
 
+        PressOut = sum(PressOut)/5
+
         return TempOut, HumOut, PressOut
 
 class LightS(object):
     # Class to control daylight sensor
     def __init__(self, order, port):
         self.errorMeasure = 0
-
         self.order = order
+
         try:
             self.daylg = GroveLightSensor(port)
         except:
@@ -128,8 +165,14 @@ class LightS(object):
 
     def measure(self):
         try:
-            lightOut = self.daylg.light
-            self.errorMeasure = 0
+            # Initialize the value arrays
+            lightOut = [0]*5
+
+            # Get 5 values for a floating average computation
+            for i in range(5):
+                lightOut[i] = self.daylg.light
+                self.errorMeasure = 0
+                time.sleep(1)
         except:
             if self.errorMeasure == 0:
                 logging.error(': Light sensor ', str(self.order), ', or hat communication (I2C) failure.')
@@ -137,11 +180,15 @@ class LightS(object):
             
             lightOut = NaN
 
+        lightOut = sum(lightOut)/5
+
         return lightOut
 
 class Relay(object):
     # Class to control relay
     def __init__(self, order, port):
+        self.state = 0
+
         self.errorOn = 0
         self.erroOff = 0
 
@@ -155,6 +202,7 @@ class Relay(object):
     def on(self):
         try:
             self.relay.on()
+            self.state = 1
             self.errorOn = 0
         except:
             if self.errorOn == 0:
@@ -164,8 +212,15 @@ class Relay(object):
     def off(self):
         try:
             self.relay.off()
+            self.state = 0
             self.erroOff = 0
         except:
             if self.erroOff == 0:
                 logging.error(': Relay ', str(self.order), ' failure.')
                 self.erroOff = 1
+
+    def toggle(self):
+        if self.state == 0:
+            self.on()
+        else:
+            self.off()

@@ -5,23 +5,12 @@ import time
 
 # Import the sensors
 from Camera import Camera
-from Camera import setCaptureStatus
+
+# Event to stop camera capturing
+eventCameraThread_run = threading.Event()
 
 # Global variable to stop camera capturing
 camLogStatus = True
-
-# Function to stop the CameraThread internal loop
-def stopCamThread(relay):
-    global camLogStatus
-
-    # Stop the capturing, turn off the illumination and wait for a while
-    setCaptureStatus(False)
-    relay.off()
-    time.sleep(0.1)
-
-    # Stop the CameraThread
-    camLogStatus = False
-
 
 # Camera handle thread
 class CameraThread(threading.Thread):
@@ -40,9 +29,11 @@ class CameraThread(threading.Thread):
 
         self.camera = Camera(fps, exp, iso, ROI, baseLog, log_dec)
 
+        eventCameraThread_run.set()
+
     def run(self):
         # This loop is run until stopped from main
-        while camLogStatus:
+        while eventCameraThread_run.is_set():
             # Call the capture method periodicaly
             self.camera.capture()
 

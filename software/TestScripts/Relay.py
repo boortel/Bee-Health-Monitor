@@ -5,7 +5,7 @@ import os
 from grove.factory import Factory
 
 def main():
-    relay = Factory.getGpioWrapper("Relay",5)
+    relay = Factory.getGpioWrapper("Relay", 5)
 
     while True:
         relay.on()

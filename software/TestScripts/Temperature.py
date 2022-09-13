@@ -6,7 +6,7 @@ import seeed_dht
 
 def main():
     # for DHT11 the type is '11', for DHT22 the type is '22'
-    sensor = seeed_dht.DHT("11", 18)
+    sensor = seeed_dht.DHT("11", 16)
 
     while True:
         humi, temp = sensor.read()
