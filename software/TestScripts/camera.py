@@ -10,6 +10,7 @@ def main():
 
     try:
         camera.start_preview()
+        sleep(30)
     except KeyboardInterrupt:
         camera.stop_preview()
 

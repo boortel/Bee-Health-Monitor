@@ -4,64 +4,31 @@ import datetime
 import logging
 import json
 import time
+import cv2
 import os
 
 from functools import partial
 from picamera import PiCamera
+
+from Sensors import Relay
 from ImageProcessorThread import ImageProcessor
 
 from BeeCounter.tracker import Tunnel
 from BeeCounter.BeeCounterThread import BeeCounterThread, eventBeeCounter
 
-# Global variable to pause camera capturing
-captureStatus = True
-
-# Function to set the capture pause control variable
-def setCaptureStatus(status):
-    global captureStatus
-    captureStatus = status
+# Event to stop camera capturing
+eventCamera_capture = threading.Event()
 
 # Object to create image processing and saving threads
 class ProcessOutput(object):
-    def __init__(self, camPath, ROI):
+    def __init__(self, camPath, ROI, log_dec):
         self.done = False
         # Construct a pool of 4 image processors along with a lock
         # to control access between threads
         self.lock = threading.Lock()
-        self.pool = [ImageProcessor(self, camPath, ROI) for i in range(4)]
+        self.pool = [ImageProcessor(self, camPath, ROI, log_dec) for i in range(4)]
         self.processor = None
         self.busy = False
-
-        # Prepare the bee counter code
-        logging.basicConfig(level=logging.DEBUG, format='(%(threadName)-5s) %(message)s')
-
-        base_path = os.path.dirname(os.path.realpath(__file__))
-
-        # Get and parse the configuration file 
-        cfg_path = os.path.join(base_path, 'BeeCounter/bee_counter.ini')
-        cfg = configparser.ConfigParser()
-        cfg.read(cfg_path)
-
-        sections = cfg.getint('ImageProcessing', 'sections')
-        arrived_threshold = cfg.getfloat('ImageProcessing', 'arrived_threshold')
-        left_threshold = cfg.getfloat('ImageProcessing', 'left_threshold')
-        track_max_age = cfg.getint('ImageProcessing', 'track_max_age')
-        background_init_from_file = cfg.getboolean('ImageProcessing', 'background_init_from_file')
-
-        # Get the initial background from file
-        if background_init_from_file:
-            background_init_frame = cv2.imread(os.path.join(base_path, 'data', 'background.jpg'))
-        
-        # Initialize the tunnels
-        tunnel_func = partial(Tunnel, sections=sections, track_max_age=track_max_age, arrived_threshold=arrived_threshold, left_threshold=left_threshold, background_init_frame=background_init_frame)
-        tunnel_args = json.loads(cfg.get('ImageProcessing', 'bins'))
-
-        # Run the beeCounter thread
-        beeCounter = BeeCounterThread(tunnel_func, tunnel_args, 'BeeCounterThread')
-        beeCounter.start()
-
-    def __del__(self):
-        eventBeeCounter.clear()
 
     def write(self, buf):
         if buf.startswith(b'\xff\xd8'):
@@ -109,7 +76,7 @@ class ProcessOutput(object):
 
 class Camera(object):
     # Class to control rPi HQ camera
-    def __init__(self, fps, exp, iso, ROI, logPath):
+    def __init__(self, fps, exp, iso, ROI, logPath, log_dec):
         self.errorCapture = 0
 
         # Camera log base path
@@ -132,11 +99,44 @@ class Camera(object):
             self.camera.awb_mode = 'off'
             self.camera.awb_gains = g
 
-            # Set the ROI
+            # Set the ROI and logging decimation factor
             self.ROI = ROI
+            self.log_dec = log_dec
+
+            self.greenLED = Relay(2, 22)
             
         except:
             logging.error(': rPi HQ camera initialization failure.')
+
+        try:
+            # Prepare the bee counter code
+            base_path = os.path.dirname(os.path.realpath(__file__))
+
+            # Get and parse the configuration file 
+            cfg_path = os.path.join(base_path, 'BeeCounter/bee_counter.ini')
+            cfg = configparser.ConfigParser()
+            cfg.read(cfg_path)
+
+            sections = cfg.getint('ImageProcessing', 'sections')
+            arrived_threshold = cfg.getfloat('ImageProcessing', 'arrived_threshold')
+            left_threshold = cfg.getfloat('ImageProcessing', 'left_threshold')
+            track_max_age = cfg.getint('ImageProcessing', 'track_max_age')
+            background_init_from_file = cfg.getboolean('ImageProcessing', 'background_init_from_file')
+
+            # Get the initial background from file
+            if background_init_from_file:
+                background_init_frame = cv2.imread(os.path.join(base_path, 'BeeCounter/data', 'background.jpg'))
+            
+            # Initialize the tunnels
+            tunnel_func = partial(Tunnel, sections=sections, track_max_age=track_max_age, arrived_threshold=arrived_threshold, left_threshold=left_threshold, background_init_frame=background_init_frame)
+            tunnel_args = json.loads(cfg.get('ImageProcessing', 'bins'))
+
+            # Run the beeCounter thread
+            self.beeCounter = BeeCounterThread(tunnel_func, tunnel_args, 'BeeCounterThread')
+            self.beeCounter.start()
+
+        except:
+            logging.error(': BeeCounter thread initialization failure.')
 
     def __del__(self):
         try:
@@ -144,10 +144,15 @@ class Camera(object):
         except:
             logging.error(': rPi HQ camera closing failure.')
 
-    def capture(self):
-        global captureStatus
+        try:
+            eventBeeCounter.clear()
+            self.beeCounter.stop()
+        except:
+            logging.error(': BeeCounter thread closing failure.')
 
-        if captureStatus == True:
+    def capture(self):
+
+        if eventCamera_capture.is_set():
 
             # Stop the capturing if run by accident
             if self.camera.recording == True:
@@ -157,15 +162,17 @@ class Camera(object):
                 logging.info(': rPi HQ camera starts capturing.')
 
                 # Set the ProcessOutput object
-                self.output = ProcessOutput(self.camPath, self.ROI)
+                self.output = ProcessOutput(self.camPath, self.ROI, self.log_dec)
 
                 # Capture sequence in 1s intervals until the stop flag occurs
                 self.camera.start_recording(self.output, format='mjpeg')
 
-                while captureStatus == True:
+                while eventCamera_capture.is_set():
                     self.camera.wait_recording(1)
+                    self.greenLED.toggle()
                 
                 self.camera.stop_recording()
+                self.greenLED.off()
 
                 logging.info(': rPi HQ camera stopped capturing.')
                     

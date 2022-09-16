@@ -2,7 +2,7 @@ import time
 import sys
 import os
 
-from ..TempPress.piqmp6988sm import piqmp6988 as QMP6988
+import piqmp6988SM as QMP6988
 import grove.grove_temperature_humidity_sensor_sht3x as seed_sht31
 from grove.i2c import Bus
 

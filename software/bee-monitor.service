@@ -1,0 +1,14 @@
+[Unit]
+Description = Bee Health Monitor data logger
+
+[Service]
+User=pi
+WorkingDirectory = /home/pi/Documents/Bee-Health-Monitor/software
+ExecStart = /usr/bin/python3 /home/pi/Documents/Bee-Health-Monitor/software/main.py
+Type = simple
+TimeoutStopSec = 10
+Restart = on-failure
+RestartSec = 5
+
+[Install]
+WantedBy = multi-user.target

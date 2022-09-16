@@ -1,4 +1,4 @@
-# BeeLogger - Software
+# BeeLogger
 
 ### Setup
 Download and install Raspberry OS Buster for rPI4 (grove.py is not compatible with the Bullseye!)

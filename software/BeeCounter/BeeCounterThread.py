@@ -29,7 +29,7 @@ class BeeCounterThread(threading.Thread):
                 continue
 
             img = queueBeeCounter.get()
-            logging.debug(f'Getting img : {str(queueBeeCounter.qsize())} items in queue')
+            #logging.debug(f'Getting img : {str(queueBeeCounter.qsize())} items in queue')
             
             # RGB -> BGR
             img = np.asarray(img)[..., ::-1]
