@@ -21,12 +21,12 @@ eventCamera_capture = threading.Event()
 
 # Object to create image processing and saving threads
 class ProcessOutput(object):
-    def __init__(self, camPath, ROI, log_dec):
+    def __init__(self, camPath, ROI, log_dec, background_init_frame):
         self.done = False
         # Construct a pool of 4 image processors along with a lock
         # to control access between threads
         self.lock = threading.Lock()
-        self.pool = [ImageProcessor(self, camPath, ROI, log_dec) for i in range(4)]
+        self.pool = [ImageProcessor(self, camPath, ROI, log_dec, background_init_frame) for i in range(4)]
         self.processor = None
         self.busy = False
 
@@ -111,9 +111,9 @@ class Camera(object):
         try:
             # Prepare the bee counter code
             base_path = os.path.dirname(os.path.realpath(__file__))
+            cfg_path = os.path.join(base_path, 'BeeCounter/bee_counter.ini')
 
             # Get and parse the configuration file 
-            cfg_path = os.path.join(base_path, 'BeeCounter/bee_counter.ini')
             cfg = configparser.ConfigParser()
             cfg.read(cfg_path)
 
@@ -125,10 +125,12 @@ class Camera(object):
 
             # Get the initial background from file
             if background_init_from_file:
-                background_init_frame = cv2.imread(os.path.join(base_path, 'BeeCounter/data', 'background.jpg'))
+                self.background_init_frame = cv2.imread(os.path.join(base_path, 'BeeCounter/data', 'background.jpg'))
+            else:
+                self.background_init_frame = None
             
             # Initialize the tunnels
-            tunnel_func = partial(Tunnel, sections=sections, track_max_age=track_max_age, arrived_threshold=arrived_threshold, left_threshold=left_threshold, background_init_frame=background_init_frame)
+            tunnel_func = partial(Tunnel, sections=sections, track_max_age=track_max_age, arrived_threshold=arrived_threshold, left_threshold=left_threshold, background_init_frame=self.background_init_frame)
             tunnel_args = json.loads(cfg.get('ImageProcessing', 'bins'))
 
             # Run the beeCounter thread
@@ -162,7 +164,7 @@ class Camera(object):
                 logging.info(': rPi HQ camera starts capturing.')
 
                 # Set the ProcessOutput object
-                self.output = ProcessOutput(self.camPath, self.ROI, self.log_dec)
+                self.output = ProcessOutput(self.camPath, self.ROI, self.log_dec, self.background_init_frame)
 
                 # Capture sequence in 1s intervals until the stop flag occurs
                 self.camera.start_recording(self.output, format='mjpeg')

@@ -11,9 +11,12 @@ from Sensors import Relay
 
 from Camera import eventCamera_capture
 from CameraThread import eventCameraThread_run
-from SensorThread import eventSensorThread_run
+from SensorThread import eventSensorThread_run, eventSensorThread_measure
 
 def main():
+
+    ## Wait two minutes to prevent a double restart
+    #time.sleep(120)
 
     ## Get current time
     now = datetime.datetime.now()
@@ -63,12 +66,12 @@ def main():
     lightOff_hour = cfg.getint('General', 'lightOff_hour')
     lightOff_minute = cfg.getint('General', 'lightOff_minute')
 
-    lightRst_hour = cfg.getint('General', 'lightRst_hour')
-    lightRst_minute = cfg.getint('General', 'lightRst_minute')
-
     t_on = datetime.time(hour = lightOn_hour, minute = lightOn_minute)
     t_off = datetime.time(hour = lightOff_hour, minute = lightOff_minute)
-    t_rst = datetime.time(hour = lightRst_hour, minute = lightRst_minute)
+
+    # Set the rst times, the second ensures a small interval to perform rst
+    t_rst1 = datetime.time(hour = 23, minute = 50)
+    t_rst2 = datetime.time(hour = 23, minute = 52)
 
     # Get rst enable flag
     rstEn = cfg.getboolean('General', 'rstEn')
@@ -118,23 +121,29 @@ def main():
             relay.off()
 
         # Stop the logging if the stop flag and time are set
-        if logStop and t_now >= t_stop:
+        if logStop and t_now >= t_stop and not(eventSensorThread_measure.is_set()):
             eventCamera_capture.clear()
             time.sleep(2)
 
             eventCameraThread_run.clear()
             eventSensorThread_run.clear()
+
+            logging.info(': Logging was stopped after set time.')
 
             log = False
             relay.off()
 
+            os.system('sudo shutdown -h now')
+
         # Restart the rPi in the desired time if set
-        if rstEn and t_capture >= t_rst:
+        if rstEn and t_capture >= t_rst1 and t_capture <= t_rst2 and not(eventSensorThread_measure.is_set()):
             eventCamera_capture.clear()
             time.sleep(2)
 
             eventCameraThread_run.clear()
             eventSensorThread_run.clear()
+
+            logging.info(': System is being restarted.')
 
             os.system('sudo reboot')
         

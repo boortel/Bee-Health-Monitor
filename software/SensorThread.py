@@ -17,8 +17,9 @@ from BeeCounter.BeeCounterThread import eventBeeCounterRead, queueBeeCounterRead
 # Global variable to stop sensor logging
 sensLogStatus = True
 
-# Event to stop the SensorThread internal loop
+# Event to stop the SensorThread internal loop and to lock the measurement
 eventSensorThread_run = threading.Event()
+eventSensorThread_measure = threading.Event()
 
 # Sensor handle thread
 class SensorThread(threading.Thread):
@@ -76,18 +77,6 @@ class SensorThread(threading.Thread):
             # Get the start time
             t1 = time.time()
 
-            # Sleep till the next sensor read period
-            if diff < self.periodSensor:
-                self.redLED.off()
-
-                while (diff < self.periodSensor) and sensLogStatus:
-                    time.sleep(0.1)
-                    t2 = time.time()
-                    diff = t2 - t1
-                    
-            else:
-                logging.warning(': Set period time was exceeded during the current iteration.')
-
             # Toggle the red LED
             self.redLED.toggle()
 
@@ -129,8 +118,13 @@ class SensorThread(threading.Thread):
 
             try:    
                 with open(self.fileName, 'a', newline = '') as csvFile:
+                    # Set the measurement event
+                    eventSensorThread_measure.set()
+
                     writer = csv.writer(csvFile, delimiter =';')
                     writer.writerow(row)
+
+                    eventSensorThread_measure.clear()
 
                 logging.info(': Sensor data were writen to the log.')
                 self.errorLog = 0
@@ -145,3 +139,15 @@ class SensorThread(threading.Thread):
             # Get the end time and the time difference to sleep
             t2 = time.time()
             diff = t2 - t1
+
+            # Sleep till the next sensor read period
+            if diff < self.periodSensor:
+                self.redLED.off()
+
+                while (diff < self.periodSensor) and sensLogStatus:
+                    time.sleep(0.1)
+                    t2 = time.time()
+                    diff = t2 - t1
+                    
+            else:
+                logging.warning(': Set period time was exceeded during the current iteration.')

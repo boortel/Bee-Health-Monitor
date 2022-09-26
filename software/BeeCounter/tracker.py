@@ -172,7 +172,7 @@ class Tunnel:
         img = img[20:, self.bins[0]:self.bins[1], ...]
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         # update dynamic model
-        self.dyn_model.update(gray)
+        _ = self.dyn_model.update(gray)
         # get motion mask and split the mask into sections
         mask = self.dyn_model.get_mask(gray)
         splits = np.split(mask, self.n_sections, axis=0)

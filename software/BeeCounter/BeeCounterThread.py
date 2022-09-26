@@ -2,7 +2,6 @@ import logging
 import threading
 import queue
 import time
-import numpy as np
 
 BUFF_SIZE = 10
 queueBeeCounterRead = queue.Queue(BUFF_SIZE)
@@ -30,9 +29,7 @@ class BeeCounterThread(threading.Thread):
 
             img = queueBeeCounter.get()
             #logging.debug(f'Getting img : {str(queueBeeCounter.qsize())} items in queue')
-            
-            # RGB -> BGR
-            img = np.asarray(img)[..., ::-1]
+
             for processor in self.processors:
                 processor.update(img)
 
