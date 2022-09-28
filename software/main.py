@@ -15,8 +15,8 @@ from SensorThread import eventSensorThread_run, eventSensorThread_measure
 
 def main():
 
-    ## Wait two minutes to prevent a double restart
-    #time.sleep(120)
+    ## Wait two minutes to prevent a multiple restart
+    time.sleep(120)
 
     ## Get current time
     now = datetime.datetime.now()

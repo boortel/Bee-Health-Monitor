@@ -44,7 +44,7 @@ class BackgroundModel:
                 self.model = self.alpha * img.astype(np.float32) + (1 - self.alpha) * self.model
         self.prev = img
 
-        print(dynamic_scene)
+        #print(dynamic_scene)
         return dynamic_scene
     
     def get_mask(self, img):
