@@ -32,21 +32,38 @@ class Microphone(object):
         self.chans = 1 # 1 channel
         self.samp_rate = 44100 # 44.1kHz sampling rate
         self.chunk = 4096 # 2^12 samples for buffer
-        self.recordTime = recordTime # seconds to record
+       	self.recordTime = recordTime # seconds to record
+
+        try:
+            with noalsaerr():
+                self.audio = pyaudio.PyAudio() # create pyaudio instantiation
+                info = self.audio.get_host_api_info_by_index(0)
+                numdevices = info.get('deviceCount')
+                #for each audio device, determine if is an input or an output and add it to the appropriate list and dictionary
+                for i in range (0,numdevices):
+                    if self.audio.get_device_info_by_host_api_device_index(0,i).get('maxInputChannels')>0:
+                        device_name =str(self.audio.get_device_info_by_host_api_device_index(0,i).get('name'))
+                        if device_name.find("USB Audio")!=-1:
+                            devinfo = self.audio.get_device_info_by_index(i)
+                            if self.audio.is_format_supported(self.samp_rate,input_device=devinfo["index"],input_channels=devinfo['maxInputChannels'],input_format=self.form_1):
+                                self.dev_index=devinfo["index"]
+                                break
+        except:
+            logging.error(': USB mic initialization failure.')
 
         # TODO: get the index dynamically based on the Mic_Init
-        self.dev_index = 2 # device index found by p.get_device_info_by_index(ii)
+        #self.dev_index = 2 # device index found by p.get_device_info_by_index(ii)
 
         # Create the sound log folder if not exists
         self.soundPath = baseLog + '/SoundLog'
         if not os.path.exists(self.soundPath):
             os.makedirs(self.soundPath)
 
-        try:
-            with noalsaerr():
-                self.audio = pyaudio.PyAudio() # create pyaudio instantiation
-        except:
-            logging.error(': USB mic initialization failure.')
+#        try:
+#            with noalsaerr():
+#                self.audio = pyaudio.PyAudio() # create pyaudio instantiation
+#        except:
+#            logging.error(': USB mic initialization failure.')
 
     def __del__(self):
         try:
