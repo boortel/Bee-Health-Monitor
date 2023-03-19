@@ -1,188 +1,98 @@
 import time
 import logging
+import serial
+import os
+import time
+import serial.tools.list_ports
 
 from numpy import NaN
 
 # Import Grove stuff
-import seeed_dht
-import seeed_sgp30
-from grove.i2c import Bus
 from grove.factory import Factory
-from grove.grove_light_sensor_v1_2 import GroveLightSensor
-from TempPress import piqmp6988SM as QMP6988
-import grove.grove_temperature_humidity_sensor_sht3x as seed_sht31
 
-config = {
-    'temperature' : QMP6988.Oversampling.X4.value,
-    'pressure' :    QMP6988.Oversampling.X32.value,
-    'filter' :      QMP6988.Filter.COEFFECT_32.value,
-    'mode' :        QMP6988.Powermode.NORMAL.value
-} 
 
-class DHT11(object):
+class RPico(object):
     # Class to control DHT11 temperature and humidity sensor
-    def __init__(self,  order, port):
+    def __init__(self):
         self.errorMeasure = 0
-        self.order = order
 
+        try_n = 2
+        port_not_binded = True
+        while port_not_binded and try_n !=0:
+            # Scan ports for devices
+            ports = serial.tools.list_ports.comports()
+            # Connect to the raspberry pico and send reset command
+            for port, desc, hwid in sorted(ports):
+                if ("Board CDC" in desc):
+                    self.s = serial.Serial(port, 115200)
+                    self.s.timeout=5
+                    self.s.reset_input_buffer()
+                    self.s.write(b"reset\n")
+                    time.sleep(3)
+                    if self.s.in_waiting > 0:
+                        line = self.s.readline().decode('utf-8').rstrip()
+                        if "ready" in line:
+                            port_not_binded = False
+            if port_not_binded:
+                os.system("sudo usbreset")
+                time.sleep(5)
+            try_n = try_n-1
+
+        if port_not_binded:
+            os.system("sudo usbreset")
+            time.sleep(120)
+            os.system("sudo reboot")
+
+    def set_ports(self,port_HX711,port_light):
         try:
-            self.DHT11 = seeed_dht.DHT("11", port)
-        except:
-            logging.error(': DHT11 sensor ', str(self.order), ' initialization failure.')
-
-    def measure(self):
-        try:
-            # Initialize the value arrays
-            HumIn = [0]*5
-            TempIn = [0]*5
-
-            # Get 5 values for a floating average computation
-            for i in range(5):
-                HumIn[i], TempIn[i] = self.DHT11.read()
-                self.errorMeasure = 0
-                time.sleep(1)
+            message = "Ports:{};{}\n".format(port_HX711,port_light)
+            self.s.write(bytes(message,'UTF-8'))
         except:
             if self.errorMeasure == 0:
-                logging.error(': DHT11 sensor ', str(self.order), ' communication (one-wire) failure.')
+                logging.error(': Raspberry Pico set ports failure.')
                 self.errorMeasure = 1
 
-            HumIn = NaN
-            TempIn = NaN
-
-        HumIn = sum(HumIn)/5
-        TempIn = sum(TempIn)/5
-
-        return HumIn, TempIn
-
-class SGP30(object):
-    # Class to control SGP30 gass sensor
-    def __init__(self, order):
-        self.errorMeasure = 0
-        self.order = order
-
+    def send_data(self):
         try:
-            self.SGP30 = seeed_sgp30.grove_sgp30(bus=Bus(1))
+            self.s.write(b"send data\n")
         except:
-            logging.error(': Gass sensor ', str(self.order), ' initialization failure.')
+            if self.errorMeasure == 0:
+                logging.error(': Raspberry Pico measure failure.')
+                self.errorMeasure = 1
+
+
+    def read_line(self):
+        try:
+            if self.s.in_waiting > 0:
+                line = self.s.readline().decode('utf-8').rstrip()
+            else:
+                line = ""
+        except:
+            if self.errorMeasure == 0:
+                logging.error(': Raspberry Pico measure failure.')
+                self.errorMeasure = 1
+            line = ""
+
+        return line
+
+    def start(self):
+        try:
+            self.s.write(b"start\n")
+            if self.s.in_waiting > 0:
+                line = self.s.readline().decode('utf-8').rstrip()
+                if not("Data:" in line):
+                    logging.info(': '+line)
+        except:
+            if self.errorMeasure == 0:
+                logging.error(': Raspberry Pico communication failure.')
+                self.errorMeasure = 1
     
-    def measure(self):
+    def close(self):
         try:
-            # Initialize the value arrays
-            co2_eq_ppm = [0]*5
-            tvoc_ppb = [0]*5
-
-            # Get 5 values for a floating average computation
-            for i in range(5):
-                gData = self.SGP30.read_measurements()
-                co2_eq_ppm[i], tvoc_ppb[i] = gData.data
-
-                self.errorMeasure = 0
-                time.sleep(1)
+            self.s.close()
         except:
-            if self.errorMeasure == 0:
-                logging.error(': Gass sensor ', str(self.order), ' communication (I2C) failure.')
-                self.errorMeasure = 1
-            
-            co2_eq_ppm = NaN
-            tvoc_ppb = NaN
+            logging.error(': Error while closing Raspberry Pico.')
 
-        co2_eq_ppm = sum(co2_eq_ppm)/5
-        tvoc_ppb = sum(tvoc_ppb)/5
-
-        return co2_eq_ppm, tvoc_ppb
-
-class SHT31(object):
-    # Class to control SHT31 temperature and humidity sensor together with the QMP6988 temperature and pressure sensor
-    def __init__(self, order):
-        self.errorMeasureSHT = 0
-        self.errorMeasureQMP = 0
-
-        self.order = order
-        try:
-            self.SHT31 = seed_sht31.GroveTemperatureHumiditySensorSHT3x(bus=Bus(1))
-        except:
-            logging.error(': Atmosphere sensor ', str(self.order), ' initialization failure.')
-
-        try:
-            self.qmp = QMP6988.PiQmp6988(config)
-        except:
-            logging.error(': Pressure sensor ', str(self.order), ' initialization failure.')
-    
-    def measure(self):
-        try:
-            # Initialize the value arrays
-            TempOut = [0]*5
-            HumOut = [0]*5
-
-            # Get 5 values for a floating average computation
-            for i in range(5):
-                TempOut[i], HumOut[i] = self.SHT31.read()
-                self.errorMeasureSHT = 0
-                time.sleep(1)
-        except:
-            if self.errorMeasureSHT == 0:
-                logging.error(': Atmosphere sensor ', str(self.order), ' communication (I2C) failure.')
-                self.errorMeasureSHT = 1
-            
-            TempOut = NaN
-            HumOut = NaN
-
-        TempOut = sum(TempOut)/5
-        HumOut = sum(HumOut)/5
-
-        try:
-            # Initialize the value arrays
-            PressOut = [0]*5
-
-            # Get 5 values for a floating average computation
-            for i in range(5):
-                values = self.qmp.read()
-                PressOut[i] = values['pressure']
-
-                self.errorMeasureQMP = 0
-                time.sleep(1)
-        except:
-            if self.errorMeasureQMP == 0:
-                logging.error(': Pressure sensor ', str(self.order), ' communication (I2C) failure.')
-                self.errorMeasureQMP = 1
-
-            PressOut = NaN
-
-        PressOut = sum(PressOut)/5
-
-        return TempOut, HumOut, PressOut
-
-class LightS(object):
-    # Class to control daylight sensor
-    def __init__(self, order, port):
-        self.errorMeasure = 0
-        self.order = order
-
-        try:
-            self.daylg = GroveLightSensor(port)
-        except:
-            logging.error(': Light sensor ', str(self.order), ' initialization failure.')
-
-    def measure(self):
-        try:
-            # Initialize the value arrays
-            lightOut = [0]*5
-
-            # Get 5 values for a floating average computation
-            for i in range(5):
-                lightOut[i] = self.daylg.light
-                self.errorMeasure = 0
-                time.sleep(1)
-        except:
-            if self.errorMeasure == 0:
-                logging.error(': Light sensor ', str(self.order), ', or hat communication (I2C) failure.')
-                self.errorMeasure = 1
-            
-            lightOut = NaN
-
-        lightOut = sum(lightOut)/5
-
-        return lightOut
 
 class Relay(object):
     # Class to control relay
