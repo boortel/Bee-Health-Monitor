@@ -9,9 +9,17 @@ Install the latest grove.py:
 curl -sL https://github.com/Seeed-Studio/grove.py/raw/master/install.sh | sudo bash -s -
 ```
 
+Install dependencies for OpenCV and PyAudio:
+
+```
+pip3 install opencv-contrib-python; sudo apt-get install -y libatlas-base-dev libhdf5-dev libhdf5-serial-dev libatlas-base-dev libjasper-dev  libqtgui4  libqt4-test
+sudo apt-get install portaudio19-dev
+```
+
 Clone this repo and install the requirements:
 
 ```
+git clone https://github.com/boortel/Bee-Health-Monitor.git
 pip install -r requirements.txt
 ```
 
@@ -42,3 +50,23 @@ Run the main.py
 ```
 python3 main.py
 ```
+
+To start the program automatically on boot transfer bee-monitor.service file to systemd files:
+
+```
+sudo cp -p -r -f  "/home/pi/Bee-Health-Monitor/software/bee-monitor.service" "/usr/lib/systemd/system/bee-monitor.service"
+```
+
+Update the systemd files and enable bee-monitor.service bee:
+
+```
+sudo systemctl daemon-reload
+sudo systemctl enable bee-monitor.service
+```
+
+Finally the program can be started:
+
+```
+sudo systemctl start bee-monitor.service
+```
+
