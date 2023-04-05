@@ -55,6 +55,7 @@ class SensorThread(object):
         co2_eq_ppm_arr = 0
         tvoc_ppb_arr = 0
         weight = 0
+        weight_arr = 0
         i =0
         i_weight = 0
         
@@ -78,6 +79,7 @@ class SensorThread(object):
                 weight_arr = 0
                 i =0
                 i_weight = 0
+                weight = 0
                 self.flush = 0
 
             # DHT11 - inner temperature and humidity
@@ -104,7 +106,8 @@ class SensorThread(object):
             tvoc_ppb_arr = tvoc_ppb_arr+tvoc_ppb
             
             weight = self.HX711_1.measure()
-            if weight != math.nan:
+#             #if weight != math.nan:
+            if not(math.isnan(weight)):
                 weight_arr = weight_arr + weight
                 i_weight = i_weight+1
             

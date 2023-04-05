@@ -231,12 +231,13 @@ class hx_711(object):
             print(': HX711 sensor ', str(self.order), ' initialization failure.')
     
     def measure(self):
-        val = self.scales.stable_value()
+        #val = self.scales.stable_value()
         try:
             # Initialize the value arrays
             Weight = 0
 
-            if val := self.scales.raw_value():
+            #if val := self.scales.raw_value():
+            if val := self.scales.stable_value():
                 Weight = val
             else:
                 Weight = math.nan
