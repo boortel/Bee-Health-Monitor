@@ -72,7 +72,7 @@ sudo systemctl start bee-monitor.service
 
 ## Block diagram
 
-A schematic block diagram of the proposed program (without the remote logging) is shown in figure bellow:
+A schematic block diagram of the proposed program (without the remote logging and Raspberry Pico update) is shown in figure bellow:
 
 ![BeeLogger](https://github.com/boortel/Bee-Health-Monitor/assets/33236294/30634ed4-a469-448c-90a5-f2c87a7281da)
 
