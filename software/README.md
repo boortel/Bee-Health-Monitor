@@ -1,6 +1,6 @@
-# BeeLogger
+# BeeLogger software
 
-### Setup
+## Setup
 Download and install Raspberry OS Buster for rPI4 (grove.py is not compatible with the Bullseye!)
 
 Install the latest grove.py:
@@ -69,4 +69,10 @@ Finally the program can be started:
 ```
 sudo systemctl start bee-monitor.service
 ```
+
+## Block diagram
+
+A schematic block diagram of the proposed program (without the remote logging) is shown in figure bellow:
+
+![BeeLogger](https://github.com/boortel/Bee-Health-Monitor/assets/33236294/30634ed4-a469-448c-90a5-f2c87a7281da)
 
