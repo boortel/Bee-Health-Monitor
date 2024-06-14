@@ -29,6 +29,7 @@ Besides the *Bee Health Monitor* platform, we would like to present our bee rela
   -  [Visual Diagnosis of the Varroa Destructor Parasitic Mite in Honeybees Using Object Detector Techniques ](https://www.mdpi.com/1424-8220/21/8/2764): article describing the Varroa mite detection using the YOLOv5 network.
   -  [Raspberry Pi Bee Health Monitoring Device](https://arxiv.org/abs/2304.14444): paper describing the communication and remote logging of the *Bee health monitor device*.
   -  [Machine learning and computer vision techniques in continuous beehive monitoring applications: A survey](https://www.sciencedirect.com/science/article/pii/S0168169923009481?dgcid=author): survey article focusing on the visual based bee health monitoring methods. A full version of the paper has restricted access, a free preprint is available [here](https://arxiv.org/abs/2208.00085).
+  -  [Computer Vision Approaches for Automated Bee Counting Application](https://arxiv.org/abs/2406.08898): preprint comparing three possible approaches in the bee counting.
   -  [Varroa destructor detection on honey bees using hyperspectral imagery](https://arxiv.org/abs/2403.14359): preprint describing a possible use of the hypespectral imaging in Varroa mite detection.
 
 ## Software
