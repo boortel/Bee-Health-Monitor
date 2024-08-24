@@ -26,7 +26,7 @@ def on_connect(client, userdata, flags, rc):
 def main():
 
     ## Wait two minutes to prevent a multiple restart
-    time.sleep(120)
+    time.sleep(10)#120
     
     #Connect to Raspberry Pico
     pico = RPico()
@@ -90,7 +90,8 @@ def main():
     
 
     if driveName != 'NaN':
-        logPath = '/media/pi/' + driveName + '/log/Log_' + timeString
+        #logPath = '/media/pi/' + driveName + '/log/Log_' + timeString #sem nevie zapisovat
+        logPath = '/home/pi/Documents/Log' + driveName + '/log/Log_' + timeString
         driveSet = False
 
     #    cfg_path = '/media/pi/' + driveName + '/BeeLogger.ini'
@@ -141,12 +142,12 @@ def main():
         logging.error(": Could not connect to client")
 
     ## Initialize the relay
-    relay = Relay(1, 5)
-
+    relay = Relay(1, 5) # LED strip
     # Initialize the red LED
     redLED = Relay(3, 24)
 
     ## Create the camera thread
+    print("Tu zacina kamera")
     cam = CameraThread(name = 'CamThread', baseLog = logPath, config = cfg)
 
     ## Run the camera thread
@@ -157,7 +158,9 @@ def main():
         fileName = logPath + '/SensorLog' + '.csv'
 
         # Open the csv and write header
-        row = ['Timestamp', 'CO2_eq (ppm)', 'TVOC (ppb)', 'TempIn_1 (°C)', 'HumIn_1 (%)', 'TempIn_2 (°C)', 'HumIn_2 (%)', 'TempOut (°C)', 'HumOut (%)', 'Pressure (hPa)', 'Light (-)', 'Weight (-)', 'BeeIn (-)', 'BeeOut (-)']
+        row = ['Timestamp', 'CO2_eq (ppm)', 'TVOC (ppb)', 
+            'TempIn_1 (degC)', 
+            'HumIn_1 (%)', 'TempIn_2 (degC)', 'HumIn_2 (%)', 'TempOut (dgC)', 'HumOut (%)', 'Pressure (hPa)', 'Light (-)', 'Weight (-)', 'BeeIn (-)', 'BeeOut (-)']
         with open(fileName, 'w', newline = '') as csvFile:
             writer = csv.writer(csvFile, delimiter =';')
             writer.writerow(row)
@@ -179,14 +182,16 @@ def main():
         if data_logged:
             t1 = time.time()
             data_logged=False
-
+        
         t_now = datetime.datetime.now()
         t_capture = datetime.time(hour=t_now.hour, minute=t_now.minute, second=t_now.second)
 
         # Turn on and off the camera capture together with the light
         if t_capture >= t_on and t_capture < t_off:
             eventCamera_capture.set()
-            relay.on()
+            #TU ZAPINAT SVETLO
+            pico.set_lights()
+            #relay.on()
         else:
             eventCamera_capture.clear()
             relay.off()
@@ -274,10 +279,7 @@ def main():
                     logging.info(": Could not send message to DB")
                         
                 # Create log
-                row = [f'{timeStampM:s}', f'{co2_eq_ppm}', f'{tvoc_ppb}', f'{float(TempIn_1):.2f}', 
-                    f'{float(HumIn_1):.2f}', f'{float(TempIn_2):.2f}', f'{float(HumIn_2):.2f}', 
-                    f'{float(TempOut):.2f}', f'{float(HumOut):.2f}', f'{float(PressOut):.2f}', f'{Light}', f'{Weight}',
-                    f'{BeeIn}', f'{BeeOut}']
+                row = [f'{timeStampM:s}', f'{co2_eq_ppm}',  f'{tvoc_ppb}', f'{float(TempIn_1):.2f}', f'{float(HumIn_1):.2f}', f'{float(TempIn_2):.2f}', f'{float(HumIn_2):.2f}',f'{float(TempOut):.2f}', f'{float(HumOut):.2f}', f'{float(PressOut):.2f}', f'{Light}', f'{Weight}',f'{BeeIn}', f'{BeeOut}']
 
                 try:    
                     with open(fileName, 'a', newline = '') as csvFile:
