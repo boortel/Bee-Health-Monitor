@@ -51,7 +51,7 @@ if __name__ == "__main__":
                 PWM_IR.duty_u16(intensity)
                 PWM_Tyr.duty_u16(0)
                 PWM_W.duty_u16(0)
-            elif color == "Tyr":
+            elif color == "Tur":
                 PWM_IR.duty_u16(0)
                 PWM_Tyr.duty_u16(intensity)
                 PWM_W.duty_u16(0)
