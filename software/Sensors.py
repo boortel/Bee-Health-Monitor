@@ -16,7 +16,7 @@ class RPico(object):
     def __init__(self):
         self.errorMeasure = 0
         self.errorIllumination=0
-        self.colors=["W","IR","Tyr"]
+        self.colors=["W","IR","Tur"]
         self.color=0
         self.intensity=32768
 
