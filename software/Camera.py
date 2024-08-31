@@ -87,17 +87,17 @@ class Camera(object):
         try:
             # Open the camera reference, set the iso and wait to settle
             self.camera = PiCamera(resolution=(1280, 720), framerate=fps)
-            #self.camera.iso = iso
+            self.camera.iso = iso
             time.sleep(2)
 
             # Set the shutter speed and disable automatic setting
-            #self.camera.exposure_mode = 'off'
-            #self.camera.shutter_speed = 1 * exp
+            self.camera.exposure_mode = 'off'
+            self.camera.shutter_speed = 1 * exp
 
             # Fix the white balance
-            # g = self.camera.awb_gains
-            # self.camera.awb_mode = 'off'
-            # self.camera.awb_gains = g
+            g = self.camera.awb_gains
+            self.camera.awb_mode = 'off'
+            self.camera.awb_gains = g
 
             # Set the ROI and logging decimation factor
             self.ROI = ROI
