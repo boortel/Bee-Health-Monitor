@@ -1,3 +1,4 @@
+
 import configparser
 import datetime
 import logging
@@ -187,10 +188,10 @@ def main():
         t_capture = datetime.time(hour=t_now.hour, minute=t_now.minute, second=t_now.second)
 
         # Turn on and off the camera capture together with the light
-        if t_capture >= t_on and t_capture < t_off:
+        if t_capture >= t_on and t_capture < t_off: 
+            pico.set_lights(cam.RequestedColor)
             eventCamera_capture.set()
-            #TU ZAPINAT SVETLO
-            pico.set_lights()
+            #print("fotka")
             #relay.on()
         else:
             eventCamera_capture.clear()
@@ -202,13 +203,14 @@ def main():
             time.sleep(2)
 
             eventCameraThread_run.clear()
+            
             #eventSensorThread_run.clear()
 
             logging.info(': Logging was stopped after set time.')
 
             log = False
-            relay.off()
-
+            #relay.off()
+            pico.clear_lights()
             os.system('sudo shutdown -h now')
 
         t2 = time.time()
@@ -299,11 +301,33 @@ def main():
 
                 redLED.off()
 
+            elif "STOP" in line:
+                #print("Bolo stlacene STOP talcidlo 1")
+                pico.clear_lights()
+                eventCamera_capture.clear()
+                time.sleep(2)
+                eventCameraThread_run.clear()
+                pico.close()
+                log = False
+                #print("Bolo stlacene STOP talcidlo 2")
+                #print(log)
+            
+            elif "color was set" in line:
+                line = line.split(" ")
+                if "W" in line[1]:
+                    cam.SetColor=0
+                elif "IR" in line[1]:
+                    cam.SetColor=1
+                elif "Tur" in line[1]:
+                    cam.SetColor=2
+                #print(line[1])
+            
             else:
                 logging.error(line)
 
         # Restart the rPi in the desired time if set
         if rstEn and t_capture >= t_rst1 and t_capture <= t_rst2:# and not(eventSensorThread_measure.is_set()):
+            pico.clear_lights()
             eventCamera_capture.clear()
             time.sleep(2)
 
@@ -315,7 +339,7 @@ def main():
         
         time.sleep(0.1)
 
-    client.loop_stop()
+    #client.loop_stop()
     
 ## Run the main function
 if __name__ == '__main__':

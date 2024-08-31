@@ -10,6 +10,15 @@ from numpy import NaN
 # Import Grove stuff
 from grove.factory import Factory
 
+# class LED(object):
+#     def __init__(self,color):
+#         self.color=color
+#     def on():
+#         pass
+#     def off():
+#         pass
+
+# Color=0 # 0, 1, or 2
 
 class RPico(object):
     # Class to control DHT11 temperature and humidity sensor
@@ -17,7 +26,7 @@ class RPico(object):
         self.errorMeasure = 0
         self.errorIllumination=0
         self.colors=["W","IR","Tur"]
-        self.color=0
+        #self.color=0
         self.intensity=32768
 
         try_n = 2
@@ -56,14 +65,10 @@ class RPico(object):
                 logging.error(': Raspberry Pico set ports failure.')
                 self.errorMeasure = 1
 
-    def set_lights(self):
+    def set_lights(self, Color):
         try:
-            mess = "ILLUminATion:{};{};\n".format(self.colors[self.color],self.intensity)
-            print(mess)
+            mess = "ILLUminATion:{};{};\n".format(self.colors[Color],self.intensity)
             self.s.write(bytes(mess,'UTF-8'))
-            self.color=self.color+1
-            if self.color>=3:
-                self.color=0
         except:
             if self.errorIllumination == 0:
                 logging.error(': Raspberry Pico ILLUminATion failure.')
@@ -72,8 +77,8 @@ class RPico(object):
     def clear_lights(self):
         try:
             pass
-            #mess = "ILLUminATion:W;0;\n"#Program in Pico turn off other led when one is set
-            #self.s.write(bytes(mess,'UTF-8'))
+            mess = "ILLUminATion:W;0;\n" #Program in Pico turn off other led when one is set
+            self.s.write(bytes(mess,'UTF-8'))
         except:
             if self.errorIllumination == 0:
                 logging.error(': Raspberry Pico ILLUminATion failure.')

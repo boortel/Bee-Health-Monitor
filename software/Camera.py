@@ -78,7 +78,7 @@ class Camera(object):
     # Class to control rPi HQ camera
     def __init__(self, fps, exp, iso, ROI, logPath, log_dec):
         self.errorCapture = 0
-
+        self.i=0
         # Camera log base path
         self.camPath = logPath + '/CameraLog'
         if not os.path.exists(self.camPath):
@@ -87,17 +87,17 @@ class Camera(object):
         try:
             # Open the camera reference, set the iso and wait to settle
             self.camera = PiCamera(resolution=(1280, 720), framerate=fps)
-            self.camera.iso = iso
+            #self.camera.iso = iso
             time.sleep(2)
 
             # Set the shutter speed and disable automatic setting
-            self.camera.exposure_mode = 'off'
-            self.camera.shutter_speed = 1 * exp
+            #self.camera.exposure_mode = 'off'
+            #self.camera.shutter_speed = 1 * exp
 
             # Fix the white balance
-            g = self.camera.awb_gains
-            self.camera.awb_mode = 'off'
-            self.camera.awb_gains = g
+            # g = self.camera.awb_gains
+            # self.camera.awb_mode = 'off'
+            # self.camera.awb_gains = g
 
             # Set the ROI and logging decimation factor
             self.ROI = ROI
@@ -152,28 +152,44 @@ class Camera(object):
         except:
             logging.error(': BeeCounter thread closing failure.')
 
-    def capture(self):
+    def capture(self,SetColor):
 
         if eventCamera_capture.is_set():
 
             # Stop the capturing if run by accident
             if self.camera.recording == True:
                 self.camera.stop_recording()
+                print("Zastavujem kameru, potrebujem ju na ine")
 
             try:
                 logging.info(': rPi HQ camera starts capturing.')
 
                 # Set the ProcessOutput object
                 self.output = ProcessOutput(self.camPath, self.ROI, self.log_dec, self.background_init_frame)
+                colors=["W","IR","Tur"]
+                #ColorStr=""
+                ColorStr=colors[SetColor]
+                # if SetColor==0:
+                #     ColorStr="W"
+                # elif SetColor==1:
+                #     ColorStr="IR"
+                # elif SetColor==2:
+                #     ColorStr="Tur"
 
                 # Capture sequence in 1s intervals until the stop flag occurs
-                self.camera.start_recording(self.output, format='mjpeg')
-
-                while eventCamera_capture.is_set():
-                    self.camera.wait_recording(1)
-                    self.greenLED.toggle()
+                #self.camera.start_recording(self.output, format='mjpeg')
+                self.i=self.i+1
+                path=self.camPath+"/"+ColorStr+"_"+str(self.i)+".jpeg"
+                self.camera.capture(path)
                 
-                self.camera.stop_recording()
+                #print("Vznikla fotka: " + ColorStr)
+                #print("Kamera uklada obrazok")
+
+                # while eventCamera_capture.is_set():
+                #     self.camera.wait_recording(1)
+                #     self.greenLED.toggle()
+                
+                #self.camera.stop_recording()
                 self.greenLED.off()
 
                 logging.info(': rPi HQ camera stopped capturing.')

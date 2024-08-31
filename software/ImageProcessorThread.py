@@ -67,6 +67,7 @@ class ImageProcessor(threading.Thread):
                             imgLog = self.camPath + '/' + now.strftime("%y%m%d_%H%M%S%f") + '.jpeg'
 
                             image.save(imgLog, 'jpeg')
+                            print("Bolulozeny obrazcok")
                             #logging.debug(': Write image as: ' + imgLog + '.')
                             self.counter = 0
 
