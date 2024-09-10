@@ -21,12 +21,12 @@ eventCamera_capture = threading.Event()
 
 # Object to create image processing and saving threads
 class ProcessOutput(object):
-    def __init__(self, camPath, ROI, log_dec, background_init_frame):
+    def __init__(self, camPath, ROI, log_dec, background_init_frame, SetColor):
         self.done = False
         # Construct a pool of 4 image processors along with a lock
         # to control access between threads
         self.lock = threading.Lock()
-        self.pool = [ImageProcessor(self, camPath, ROI, log_dec, background_init_frame) for i in range(4)]
+        self.pool = [ImageProcessor(self, camPath, ROI, log_dec, background_init_frame, SetColor) for i in range(4)]
         self.processor = None
         self.busy = False
 
@@ -79,6 +79,9 @@ class Camera(object):
     def __init__(self, fps, exp, iso, ROI, logPath, log_dec):
         self.errorCapture = 0
         self.i=0
+
+        self.background_init_frames=list()
+
         # Camera log base path
         self.camPath = logPath + '/CameraLog'
         if not os.path.exists(self.camPath):
@@ -125,12 +128,17 @@ class Camera(object):
 
             # Get the initial background from file
             if background_init_from_file:
-                self.background_init_frame = cv2.imread(os.path.join(base_path, 'BeeCounter/data', 'background.jpg'))
+                self.background_init_frames[0]=cv2.imread(os.path.join(base_path, 'BeeCounter/data', 'backgroundW.jpg'))
+                self.background_init_frames[1]=cv2.imread(os.path.join(base_path, 'BeeCounter/data', 'backgroundIR.jpg'))
+                self.background_init_frames[2]=cv2.imread(os.path.join(base_path, 'BeeCounter/data', 'backgroundTur.jpg'))
             else:
-                self.background_init_frame = None
+                self.background_init_frames[0] = None
+                self.background_init_frames[1] = None
+                self.background_init_frames[2] = None
+            
             
             # Initialize the tunnels
-            tunnel_func = partial(Tunnel, sections=sections, track_max_age=track_max_age, arrived_threshold=arrived_threshold, left_threshold=left_threshold, background_init_frame=self.background_init_frame)
+            tunnel_func = partial(Tunnel, sections=sections, track_max_age=track_max_age, arrived_threshold=arrived_threshold, left_threshold=left_threshold, background_init_frame=self.background_init_frames[0])
             tunnel_args = json.loads(cfg.get('ImageProcessing', 'bins'))
 
             # Run the beeCounter thread
@@ -159,37 +167,20 @@ class Camera(object):
             # Stop the capturing if run by accident
             if self.camera.recording == True:
                 self.camera.stop_recording()
-                print("Zastavujem kameru, potrebujem ju na ine")
 
             try:
                 logging.info(': rPi HQ camera starts capturing.')
 
                 # Set the ProcessOutput object
-                self.output = ProcessOutput(self.camPath, self.ROI, self.log_dec, self.background_init_frame)
-                colors=["W","IR","Tur"]
-                #ColorStr=""
-                ColorStr=colors[SetColor]
-                # if SetColor==0:
-                #     ColorStr="W"
-                # elif SetColor==1:
-                #     ColorStr="IR"
-                # elif SetColor==2:
-                #     ColorStr="Tur"
+                self.output = ProcessOutput(self.camPath, self.ROI, self.log_dec, self.background_init_frames[SetColor], SetColor)
 
                 # Capture sequence in 1s intervals until the stop flag occurs
-                #self.camera.start_recording(self.output, format='mjpeg')
-                self.i=self.i+1
-                path=self.camPath+"/"+ColorStr+"_"+str(self.i)+".jpeg"
-                self.camera.capture(path)
+                self.camera.start_recording(self.output, format='mjpeg')
+                while eventCamera_capture.is_set():
+                    self.camera.wait_recording(1)
+                    self.greenLED.toggle()
                 
-                #print("Vznikla fotka: " + ColorStr)
-                #print("Kamera uklada obrazok")
-
-                # while eventCamera_capture.is_set():
-                #     self.camera.wait_recording(1)
-                #     self.greenLED.toggle()
-                
-                #self.camera.stop_recording()
+                self.camera.stop_recording()
                 self.greenLED.off()
 
                 logging.info(': rPi HQ camera stopped capturing.')

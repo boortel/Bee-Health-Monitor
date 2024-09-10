@@ -1,3 +1,4 @@
+
 import configparser
 import threading
 import datetime
@@ -15,7 +16,7 @@ from BeeCounter.background import BackgroundModel
 
 # Image processing thread
 class ImageProcessor(threading.Thread):
-    def __init__(self, owner, camPath, ROI, log_dec, background_init_frame):
+    def __init__(self, owner, camPath, ROI, log_dec, background_init_frame, color):
         super(ImageProcessor, self).__init__()
         self.stream = io.BytesIO()
         self.event = threading.Event()
@@ -28,12 +29,28 @@ class ImageProcessor(threading.Thread):
 
         self.counter = 0
 
+        self.color = color
+        WhiteT = (50, 50, 30, 5000)
+        IRT = (50, 50, 30, 5000)
+        TurT = (50, 50, 30, 5000)#turtle :-D
+        BackgroundFeatures=(WhiteT, IRT, TurT)
+
+        #create folders for images
+        for i in range ["W","IR","Tur"]:
+            if not os.path.exists(self.camPath + '/' + i):
+                os.makedirs(self.camPath + '/' + i)
+
         # Initialize the dynamic background model
         if background_init_frame is not None:
             #background_init_frame = background_init_frame[20:, bins[0]:bins[1], ...]
             background_init_frame = cv2.cvtColor(background_init_frame, cv2.COLOR_BGR2GRAY)
+        #self.models=list()
 
-        self.dyn_model = BackgroundModel(50, 50, 30, 5000, background_init_frame=background_init_frame)
+        #self.dyn_model = BackgroundModel(50, 50, 30, 5000, background_init_frame=background_init_frame)
+        self.dyn_model = BackgroundModel(BackgroundFeatures[color], background_init_frame=background_init_frame)
+        #self.models[0] = BackgroundModel(50, 50, 30, 5000, background_init_frame=background_init_frameW)
+        #self.models[1] = BackgroundModel(50, 50, 30, 5000, background_init_frame=background_init_frameIR)
+        #self.models[2] = BackgroundModel(50, 50, 30, 5000, background_init_frame=background_init_frameTur)
 
         self.start()
 
@@ -64,10 +81,10 @@ class ImageProcessor(threading.Thread):
                         # Log the image
                         if self.counter >= self.log_dec:
                             now = datetime.datetime.now()
-                            imgLog = self.camPath + '/' + now.strftime("%y%m%d_%H%M%S%f") + '.jpeg'
+                            imgLog = self.camPath + '/' + self.color + '/' + now.strftime("%y%m%d_%H%M%S%f") + '.jpeg'
 
                             image.save(imgLog, 'jpeg')
-                            print("Bolulozeny obrazcok")
+                            print("Bol ulozeny obrazcok..... A mozno spravny, dopln kontrolu")
                             #logging.debug(': Write image as: ' + imgLog + '.')
                             self.counter = 0
 

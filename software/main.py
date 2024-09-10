@@ -143,7 +143,7 @@ def main():
         logging.error(": Could not connect to client")
 
     ## Initialize the relay
-    relay = Relay(1, 5) # LED strip
+    #relay = Relay(1, 5) # LED strip
     # Initialize the red LED
     redLED = Relay(3, 24)
 
@@ -189,13 +189,10 @@ def main():
 
         # Turn on and off the camera capture together with the light
         if t_capture >= t_on and t_capture < t_off: 
-            pico.set_lights(cam.RequestedColor)
+            pico.set_lights()#mozno doplnit nejaky if nech neposiela stale dookola tuto spravu
             eventCamera_capture.set()
-            #print("fotka")
-            #relay.on()
         else:
             eventCamera_capture.clear()
-            relay.off()
 
         # Stop the logging if the stop flag and time are set
         if logStop and t_now >= t_stop: #and not(eventSensorThread_measure.is_set()):

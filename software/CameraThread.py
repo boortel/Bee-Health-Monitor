@@ -20,7 +20,6 @@ class CameraThread(threading.Thread):#CameraThread je odvodena(zdedena) od threa
         super(CameraThread,self).__init__()#a tu sa vola konstruktor rodica triedy
         self.name = name
         self.SetColor=0
-        self.RequestedColor=0
         # Load the cfg from the ini-file
         fps = config.getint('Camera', 'fps')
         exp = config.getint('Camera', 'exp')
@@ -37,13 +36,7 @@ class CameraThread(threading.Thread):#CameraThread je odvodena(zdedena) od threa
     def run(self):
         # This loop is run until stopped from main
         while eventCameraThread_run.is_set():
-            # Call the capture method periodicaly
-            if self.RequestedColor == self.SetColor:
-                self.camera.capture(self.SetColor)
-                self.RequestedColor=self.SetColor+1
-                if self.RequestedColor>=3:
-                    self.RequestedColor=0
-            #print("Teoreticky by mala vzniknut fotka")
+            self.camera.capture(self.SetColor)
             
             # Sleep until the next check
             time.sleep(0.1)

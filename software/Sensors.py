@@ -65,9 +65,10 @@ class RPico(object):
                 logging.error(': Raspberry Pico set ports failure.')
                 self.errorMeasure = 1
 
-    def set_lights(self, Color):
+    def set_lights(self):
         try:
-            mess = "ILLUminATion:{};{};\n".format(self.colors[Color],self.intensity)
+            #mess = "ILLUminATion:{};{};\n".format(self.colors[Color],self.intensity)
+            mess = "START ILLUminATion\n"
             self.s.write(bytes(mess,'UTF-8'))
         except:
             if self.errorIllumination == 0:
@@ -77,7 +78,8 @@ class RPico(object):
     def clear_lights(self):
         try:
             pass
-            mess = "ILLUminATion:W;0;\n" #Program in Pico turn off other led when one is set
+            #mess = "ILLUminATion:W;0;\n" #Program in Pico turn off other led when one is set
+            mess = "STOP ILLUminATion\n"
             self.s.write(bytes(mess,'UTF-8'))
         except:
             if self.errorIllumination == 0:
