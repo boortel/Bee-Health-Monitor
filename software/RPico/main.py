@@ -9,6 +9,15 @@ from SensorThread import SensorThread
 from SensorThread import eventSensorThread_run
 import _thread
 
+import time
+
+FPS = 3 #or 6
+Period = 1000 / FPS
+current_time = time.time_ns() // 1000000
+old_time = current_time
+
+color = 0
+
 led = Pin(25, Pin.OUT)
 led.value(1)
 
@@ -24,6 +33,7 @@ button = Pin(21, Pin.IN, Pin.PULL_DOWN)
 PWM_IR.freq (5000)
 PWM_Tyr.freq (5000)
 PWM_W.freq (5000)
+intensity=50000#1000#65535
 ports_set = 0
 
 v=""
@@ -32,11 +42,31 @@ OldButtonState=False
 
 if __name__ == "__main__":  
     while True:
+        current_time=time.time_ns() // 1000000
         ButtonState=button.value()
         if ButtonState and not OldButtonState:
             print("STOP")
         OldButtonState=ButtonState
         poll_results = poll_obj.poll(1) # the '1' is how long it will wait for message before looping again (in microseconds)
+        if current_time-old_time>=Period:
+            old_time=current_time
+            color+=1
+            if color >= 3:
+                color = 0
+            if color == 0:
+                PWM_IR.duty_u16(intensity)
+                PWM_Tyr.duty_u16(0)
+                PWM_W.duty_u16(0)
+            elif color == 1:
+                PWM_IR.duty_u16(0)
+                PWM_Tyr.duty_u16(intensity)
+                PWM_W.duty_u16(0)
+            elif color == 2:
+                PWM_IR.duty_u16(0)
+                PWM_Tyr.duty_u16(0)
+                PWM_W.duty_u16(intensity)
+            #print("The " + color + " color was set")
+            
         if poll_results:
             # Read the data from stdin (read data coming from PC)
             v = sys.stdin.readline().strip()
@@ -62,24 +92,24 @@ if __name__ == "__main__":
                 ports_set = 1
             elif v == "send data":
                 sen.sendData = 1
-            elif "ILLUminATion:" in v: #yes minion
-                v = v[13:]
-                mess = v.split(";")
-                color = mess[0]
-                intensity = int(mess[1])
-                if color == "IR":
-                    PWM_IR.duty_u16(intensity)
-                    PWM_Tyr.duty_u16(0)
-                    PWM_W.duty_u16(0)
-                elif color == "Tur":
-                    PWM_IR.duty_u16(0)
-                    PWM_Tyr.duty_u16(intensity)
-                    PWM_W.duty_u16(0)
-                elif color == "W":
-                    PWM_IR.duty_u16(0)
-                    PWM_Tyr.duty_u16(0)
-                    PWM_W.duty_u16(intensity)
-                print("The " + color + " color was set")
+#             elif "ILLUminATion:" in v: #yes minion
+#                 v = v[13:]
+#                 mess = v.split(";")
+#                 color = mess[0]
+#                 intensity = int(mess[1])
+#                 if color == "IR":
+#                     PWM_IR.duty_u16(intensity)
+#                     PWM_Tyr.duty_u16(0)
+#                     PWM_W.duty_u16(0)
+#                 elif color == "Tur":
+#                     PWM_IR.duty_u16(0)
+#                     PWM_Tyr.duty_u16(intensity)
+#                     PWM_W.duty_u16(0)
+#                 elif color == "W":
+#                     PWM_IR.duty_u16(0)
+#                     PWM_Tyr.duty_u16(0)
+#                     PWM_W.duty_u16(intensity)
+#                print("The " + color + " color was set")
             elif v =="reset":
                 try:
                     eventSensorThread_run.release()
