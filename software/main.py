@@ -1,4 +1,5 @@
 
+
 import configparser
 import datetime
 import logging
@@ -191,6 +192,7 @@ def main():
         if t_capture >= t_on and t_capture < t_off: 
             pico.set_lights()#mozno doplnit nejaky if nech neposiela stale dookola tuto spravu
             eventCamera_capture.set()
+            print("Main behol do zachytenia snimky")
         else:
             eventCamera_capture.clear()
 

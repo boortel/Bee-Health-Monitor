@@ -36,7 +36,7 @@ class CameraThread(threading.Thread):#CameraThread je odvodena(zdedena) od threa
     def run(self):
         # This loop is run until stopped from main
         while eventCameraThread_run.is_set():
+            print("CameraThread zachytava snimku")
             self.camera.capture(self.SetColor)
-            
             # Sleep until the next check
             time.sleep(0.1)

@@ -23,6 +23,7 @@ class ImageProcessor(threading.Thread):
         self.terminated = False
         self.owner = owner
 
+        print("Vnutri konstruktora ImageProcessor")
         self.camPath = camPath
         self.ROI = ROI
         self.log_dec = log_dec
@@ -36,18 +37,26 @@ class ImageProcessor(threading.Thread):
         BackgroundFeatures=(WhiteT, IRT, TurT)
 
         #create folders for images
-        for i in range ["W","IR","Tur"]:
-            if not os.path.exists(self.camPath + '/' + i):
-                os.makedirs(self.camPath + '/' + i)
-
-        # Initialize the dynamic background model
-        if background_init_frame is not None:
-            #background_init_frame = background_init_frame[20:, bins[0]:bins[1], ...]
-            background_init_frame = cv2.cvtColor(background_init_frame, cv2.COLOR_BGR2GRAY)
-        #self.models=list()
+        try:
+            for i in ["W","IR","Tur"]:
+                if not os.path.exists(self.camPath + '/' + i):
+                    os.makedirs(self.camPath + '/' + i)
+        except:
+            print("Nevie vytvorit priecinky pre X farbiciek")
+        try:
+            # Initialize the dynamic background model
+            if background_init_frame is not None:
+                #background_init_frame = background_init_frame[20:, bins[0]:bins[1], ...]
+                background_init_frame = cv2.cvtColor(background_init_frame, cv2.COLOR_BGR2GRAY)
+            #self.models=list()
+        except:
+            print("Uprimne ani neviem, co tu nejde")
 
         #self.dyn_model = BackgroundModel(50, 50, 30, 5000, background_init_frame=background_init_frame)
-        self.dyn_model = BackgroundModel(BackgroundFeatures[color], background_init_frame=background_init_frame)
+        try:
+            self.dyn_model = BackgroundModel(BackgroundFeatures[color], background_init_frame=background_init_frame)#zatial robi problemy toto
+        except:
+            print("Background model robi patalie")
         #self.models[0] = BackgroundModel(50, 50, 30, 5000, background_init_frame=background_init_frameW)
         #self.models[1] = BackgroundModel(50, 50, 30, 5000, background_init_frame=background_init_frameIR)
         #self.models[2] = BackgroundModel(50, 50, 30, 5000, background_init_frame=background_init_frameTur)

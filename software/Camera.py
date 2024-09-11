@@ -22,11 +22,17 @@ eventCamera_capture = threading.Event()
 # Object to create image processing and saving threads
 class ProcessOutput(object):
     def __init__(self, camPath, ROI, log_dec, background_init_frame, SetColor):
+    #def __init__(self, camPath, ROI, log_dec, background_init_frame):
         self.done = False
+        print("Konstruktor ProcessOutput")
         # Construct a pool of 4 image processors along with a lock
-        # to control access between threads
+        # to control access between threads        
         self.lock = threading.Lock()
-        self.pool = [ImageProcessor(self, camPath, ROI, log_dec, background_init_frame, SetColor) for i in range(4)]
+        try:
+            self.pool = [ImageProcessor(self, camPath, ROI, log_dec, background_init_frame, SetColor) for i in range(4)]
+            #self.pool = [ImageProcessor(self, camPath, ROI, log_dec, background_init_frame) for i in range(4)]
+        except:
+            print("Pre zmenu odmieta vzniknut ImageProcessor")
         self.processor = None
         self.busy = False
 
@@ -128,13 +134,14 @@ class Camera(object):
 
             # Get the initial background from file
             if background_init_from_file:
-                self.background_init_frames[0]=cv2.imread(os.path.join(base_path, 'BeeCounter/data', 'backgroundW.jpg'))
-                self.background_init_frames[1]=cv2.imread(os.path.join(base_path, 'BeeCounter/data', 'backgroundIR.jpg'))
-                self.background_init_frames[2]=cv2.imread(os.path.join(base_path, 'BeeCounter/data', 'backgroundTur.jpg'))
+                self.background_init_frame=cv2.imread(os.path.join(base_path, 'BeeCounter/data/backgroundW.jpg'))
+                self.background_init_frames.append(cv2.imread(os.path.join(base_path, 'BeeCounter/data/backgroundW.jpg')))
+                self.background_init_frames.append(cv2.imread(os.path.join(base_path, 'BeeCounter/data/backgroundIR.jpg')))
+                self.background_init_frames.append(cv2.imread(os.path.join(base_path, 'BeeCounter/data/backgroundTur.jpg')))
             else:
-                self.background_init_frames[0] = None
-                self.background_init_frames[1] = None
-                self.background_init_frames[2] = None
+                self.background_init_frames.append(None)
+                self.background_init_frames.append(None)
+                self.background_init_frames.append(None)
             
             
             # Initialize the tunnels
@@ -170,15 +177,26 @@ class Camera(object):
 
             try:
                 logging.info(': rPi HQ camera starts capturing.')
-
+                #logging.info(self.background_init_frames[0])
+                # print(type(self.background_init_frames[0]))
+                # print(self.background_init_frames[1])
+                # print(self.background_init_frames[2])
+                print("Pred ProcessOutput")#sem dojde
                 # Set the ProcessOutput object
-                self.output = ProcessOutput(self.camPath, self.ROI, self.log_dec, self.background_init_frames[SetColor], SetColor)
-
+                try:
+                    #self.output = ProcessOutput(self.camPath, self.ROI, self.log_dec, self.background_init_frame)
+                    self.output = ProcessOutput(self.camPath, self.ROI, self.log_dec, self.background_init_frames[SetColor], SetColor)
+                except:
+                    print("ProcessOutput odmieta vzniknut")
+               #self.output = ProcessOutput(self.camPath, self.ROI, self.log_dec, self.background_init_frame)
+                print("Po ProcessOutput")
+                print("Camera.py zacina s videom a posuva ho dalej")
                 # Capture sequence in 1s intervals until the stop flag occurs
                 self.camera.start_recording(self.output, format='mjpeg')
                 while eventCamera_capture.is_set():
                     self.camera.wait_recording(1)
                     self.greenLED.toggle()
+                    print("Video sa nataca z Camera.py")
                 
                 self.camera.stop_recording()
                 self.greenLED.off()
@@ -189,5 +207,6 @@ class Camera(object):
                 
             except:
                 if self.errorCapture == 0:
+                    print("V Camera.py sa cosi pototo")
                     logging.error(': Camera capturing failure... ')
                     self.errorCapture = 1
