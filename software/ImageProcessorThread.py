@@ -36,21 +36,18 @@ class ImageProcessor(threading.Thread):
         TurT = (50, 50, 30, 5000)#turtle :-D
         BackgroundFeatures=(WhiteT, IRT, TurT)
 
+
+        self.colors = ["W","IR","Tur"]
         #create folders for images
-        try:
-            for i in ["W","IR","Tur"]:
-                if not os.path.exists(self.camPath + '/' + i):
-                    os.makedirs(self.camPath + '/' + i)
-        except:
-            print("Nevie vytvorit priecinky pre X farbiciek")
-        try:
-            # Initialize the dynamic background model
-            if background_init_frame is not None:
-                #background_init_frame = background_init_frame[20:, bins[0]:bins[1], ...]
-                background_init_frame = cv2.cvtColor(background_init_frame, cv2.COLOR_BGR2GRAY)
-            #self.models=list()
-        except:
-            print("Uprimne ani neviem, co tu nejde")
+        for i in self.colors:
+            if not os.path.exists(self.camPath + '/' + i):
+                os.makedirs(self.camPath + '/' + i)
+        # Initialize the dynamic background model
+        if background_init_frame is not None:
+            #background_init_frame = background_init_frame[20:, bins[0]:bins[1], ...]
+            background_init_frame = cv2.cvtColor(background_init_frame, cv2.COLOR_BGR2GRAY)
+        #self.models=list()
+
 
         #self.dyn_model = BackgroundModel(50, 50, 30, 5000, background_init_frame=background_init_frame)
         try:
@@ -65,6 +62,7 @@ class ImageProcessor(threading.Thread):
 
     def run(self):
         # This method runs in a separate thread
+        #print("ImageProcessor thread bezi")
         while not self.terminated:
             # Wait for an image to be written to the stream
             if self.event.wait(1):
@@ -79,6 +77,7 @@ class ImageProcessor(threading.Thread):
                     image_bgr = np.asarray(image)[..., ::-1]
                     gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
                     
+                    print("pred zistovanim update")#sem to skace
                     # Process only dynamic images
                     if self.dyn_model.update(gray):
                         # Put the image to the BeeCounter queue
@@ -87,12 +86,20 @@ class ImageProcessor(threading.Thread):
                         # Iterate the logging counter
                         self.counter += 1
 
+                        print("bol updatnuty obrazok, som tesne pred ukladanim")
                         # Log the image
-                        if self.counter >= self.log_dec:
-                            now = datetime.datetime.now()
-                            imgLog = self.camPath + '/' + self.color + '/' + now.strftime("%y%m%d_%H%M%S%f") + '.jpeg'
-
-                            image.save(imgLog, 'jpeg')
+                        if self.counter >= self.log_dec:#tu su patalie
+                            try:
+                                print("1")
+                                now = datetime.datetime.now()
+                                print("2")
+                                imgLog = self.camPath + '/' + self.colors[self.color] + '/' + now.strftime("%y%m%d_%H%M%S%f") + '.jpeg'
+                                #imgLog = self.camPath + '/' + "W" + '/' + now.strftime("%y%m%d_%H%M%S%f") + '.jpeg'
+                                print("3")
+                                image.save(imgLog, 'jpeg')
+                                print("4")
+                            except:
+                                print("Nejde ulozit obrazok")
                             print("Bol ulozeny obrazcok..... A mozno spravny, dopln kontrolu")
                             #logging.debug(': Write image as: ' + imgLog + '.')
                             self.counter = 0
