@@ -49,8 +49,13 @@ if __name__ == "__main__":
         if ButtonState and not OldButtonState:
             print("STOP")
             FlashingEnable=False
+            try:
+                eventSensorThread_run.release()
+            except:
+                pass
         OldButtonState=ButtonState
         poll_results = poll_obj.poll(1) # the '1' is how long it will wait for message before looping again (in microseconds)
+        print(FlashingEnable)
         if FlashingEnable:
             if current_time-old_time>=Period:
                 old_time=current_time
@@ -121,8 +126,12 @@ if __name__ == "__main__":
 #                     PWM_Tyr.duty_u16(0)
 #                     PWM_W.duty_u16(intensity)
 #                print("The " + color + " color was set")
-            elif v == "STOP ILLUminATion"
+            elif v == "STOP ILLUminATion":
                 FlashingEnable=False
+                try:
+                    eventSensorThread_run.release()
+                except:
+                    pass
             elif v == "reset":
                 FlashingEnable=False
                 try:
