@@ -55,7 +55,7 @@ if __name__ == "__main__":
                 pass
         OldButtonState=ButtonState
         poll_results = poll_obj.poll(1) # the '1' is how long it will wait for message before looping again (in microseconds)
-        print(FlashingEnable)
+        #print(FlashingEnable)
         if FlashingEnable:
             if current_time-old_time>=Period:
                 old_time=current_time
