@@ -25,6 +25,8 @@ led.value(1)
 poll_obj = select.poll()
 poll_obj.register(sys.stdin, select.POLLIN)
 
+FlashingEnable=False
+
 PWM_IR = PWM(Pin(16))
 PWM_Tyr = PWM(Pin(17))
 PWM_W = PWM(Pin(20))
@@ -48,31 +50,39 @@ if __name__ == "__main__":
             print("STOP")
         OldButtonState=ButtonState
         poll_results = poll_obj.poll(1) # the '1' is how long it will wait for message before looping again (in microseconds)
-        if current_time-old_time>=Period:
-            old_time=current_time
-            color+=1
-            if color >= 3:
-                color = 0
-            if color == 0:
-                PWM_IR.duty_u16(intensity)
-                PWM_Tyr.duty_u16(0)
-                PWM_W.duty_u16(0)
-            elif color == 1:
-                PWM_IR.duty_u16(0)
-                PWM_Tyr.duty_u16(intensity)
-                PWM_W.duty_u16(0)
-            elif color == 2:
-                PWM_IR.duty_u16(0)
-                PWM_Tyr.duty_u16(0)
-                PWM_W.duty_u16(intensity)
-            #print("The " + color + " color was set")
-            
+        if FlashingEnable:
+            if current_time-old_time>=Period:
+                old_time=current_time
+                color+=1
+                if color >= 3:
+                    color = 0
+                if color == 0:
+                    PWM_IR.duty_u16(intensity)
+                    PWM_Tyr.duty_u16(0)
+                    PWM_W.duty_u16(0)
+                    print("The IR color was set")
+                elif color == 1:
+                    PWM_IR.duty_u16(0)
+                    PWM_Tyr.duty_u16(intensity)
+                    PWM_W.duty_u16(0)
+                    print("The Tur color was set")
+                elif color == 2:
+                    PWM_IR.duty_u16(0)
+                    PWM_Tyr.duty_u16(0)
+                    PWM_W.duty_u16(intensity)
+                    print("The W color was set")
+        else:
+            PWM_IR.duty_u16(0)
+            PWM_Tyr.duty_u16(0)
+            PWM_W.duty_u16(0)
+                
         if poll_results:
             # Read the data from stdin (read data coming from PC)
             v = sys.stdin.readline().strip()
             #print(v)
         #else:
             if v == "start":
+                FlashingEnable=True
                 if ports_set:
                     sen.flush = 1
                     led.value(0)
