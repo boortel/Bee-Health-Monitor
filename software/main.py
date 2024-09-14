@@ -17,6 +17,7 @@ from Sensors import Relay, RPico
 from Camera import eventCamera_capture
 from CameraThread import eventCameraThread_run
 from Microphone import Microphone
+import ImageProcessorThread 
 
 from BeeCounter.BeeCounterThread import eventBeeCounterRead, queueBeeCounterRead
 
@@ -315,10 +316,13 @@ def main():
                 line = line.split(" ")
                 if "W" in line[1]:
                     cam.SetColor=0
+                    ImageProcessorThread.GlobalColor=0
                 elif "IR" in line[1]:
                     cam.SetColor=1
+                    ImageProcessorThread.GlobalColor=1
                 elif "Tur" in line[1]:
                     cam.SetColor=2
+                    ImageProcessorThread.GlobalColor=2
                 #print(line[1])
             
             else:

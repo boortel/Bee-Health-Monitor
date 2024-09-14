@@ -21,7 +21,7 @@ eventCamera_capture = threading.Event()
 
 # Object to create image processing and saving threads
 class ProcessOutput(object):
-    def __init__(self, camPath, ROI, log_dec, background_init_frame, SetColor):
+    def __init__(self, camPath, ROI, log_dec, SetColor, base_path):
     #def __init__(self, camPath, ROI, log_dec, background_init_frame):
         self.done = False
         #print("Konstruktor ProcessOutput")
@@ -29,7 +29,7 @@ class ProcessOutput(object):
         # to control access between threads        
         self.lock = threading.Lock()
         try:
-            self.pool = [ImageProcessor(self, camPath, ROI, log_dec, background_init_frame, SetColor) for i in range(4)]
+            self.pool = [ImageProcessor(self, camPath, ROI, log_dec, SetColor, base_path) for i in range(4)]
         except:
             print("Pre zmenu odmieta vzniknut ImageProcessor")
         self.processor = None
@@ -39,7 +39,7 @@ class ProcessOutput(object):
         if buf.startswith(b'\xff\xd8'):
             # New frame; set the current processor going and grab
             # a spare one
-            print(len(self.pool))
+            #print(len(self.pool))
             if self.processor:
                 self.processor.event.set()
             with self.lock:
@@ -121,8 +121,8 @@ class Camera(object):
 
         try:
             # Prepare the bee counter code
-            base_path = os.path.dirname(os.path.realpath(__file__))
-            cfg_path = os.path.join(base_path, 'BeeCounter/bee_counter.ini')
+            self.base_path = os.path.dirname(os.path.realpath(__file__))
+            cfg_path = os.path.join(self.base_path, 'BeeCounter/bee_counter.ini')
 
             # Get and parse the configuration file 
             cfg = configparser.ConfigParser()
@@ -136,10 +136,10 @@ class Camera(object):
 
             # Get the initial background from file
             if background_init_from_file:
-                self.background_init_frame=cv2.imread(os.path.join(base_path, 'BeeCounter/data/backgroundW.jpg'))
-                self.background_init_frames.append(cv2.imread(os.path.join(base_path, 'BeeCounter/data/backgroundW.jpg')))
-                self.background_init_frames.append(cv2.imread(os.path.join(base_path, 'BeeCounter/data/backgroundIR.jpg')))
-                self.background_init_frames.append(cv2.imread(os.path.join(base_path, 'BeeCounter/data/backgroundTur.jpg')))
+                #self.background_init_frame=cv2.imread(os.path.join(base_path, 'BeeCounter/data/backgroundW.jpg'))
+                self.background_init_frames.append(cv2.imread(os.path.join(self.base_path, 'BeeCounter/data/backgroundW.jpg')))
+                self.background_init_frames.append(cv2.imread(os.path.join(self.base_path, 'BeeCounter/data/backgroundIR.jpg')))
+                self.background_init_frames.append(cv2.imread(os.path.join(self.base_path, 'BeeCounter/data/backgroundTur.jpg')))
             else:
                 self.background_init_frames.append(None)
                 self.background_init_frames.append(None)
@@ -183,7 +183,7 @@ class Camera(object):
                 # Set the ProcessOutput object
                 try:
                     #self.output = ProcessOutput(self.camPath, self.ROI, self.log_dec, self.background_init_frame)
-                    self.output = ProcessOutput(self.camPath, self.ROI, self.log_dec, self.background_init_frames[SetColor], SetColor)
+                    self.output = ProcessOutput(self.camPath, self.ROI, self.log_dec, SetColor, self.base_path)
                 except:
                     print("ProcessOutput odmieta vzniknut")
                #self.output = ProcessOutput(self.camPath, self.ROI, self.log_dec, self.background_init_frame)
