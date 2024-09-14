@@ -24,13 +24,12 @@ class ProcessOutput(object):
     def __init__(self, camPath, ROI, log_dec, background_init_frame, SetColor):
     #def __init__(self, camPath, ROI, log_dec, background_init_frame):
         self.done = False
-        print("Konstruktor ProcessOutput")
+        #print("Konstruktor ProcessOutput")
         # Construct a pool of 4 image processors along with a lock
         # to control access between threads        
         self.lock = threading.Lock()
         try:
             self.pool = [ImageProcessor(self, camPath, ROI, log_dec, background_init_frame, SetColor) for i in range(4)]
-            #self.pool = [ImageProcessor(self, camPath, ROI, log_dec, background_init_frame) for i in range(4)]
         except:
             print("Pre zmenu odmieta vzniknut ImageProcessor")
         self.processor = None
@@ -40,18 +39,19 @@ class ProcessOutput(object):
         if buf.startswith(b'\xff\xd8'):
             # New frame; set the current processor going and grab
             # a spare one
+            print(len(self.pool))
             if self.processor:
                 self.processor.event.set()
             with self.lock:
                 if self.pool:
-                    self.processor = self.pool.pop()
+                    self.processor = self.pool.pop()#do premennej priradi vlakno?
                     self.busy = False
                 else:
                     # No processor's available, we'll have to skip
                     # this frame; you may want to print a warning
                     # here to see whether you hit this case
                     self.processor = None
-
+                    print("Asi nemam volne vlakno")
                     if self.busy == False:
                         logging.warning(': No processor available, the frame was skipeed.')
                         self.busy = True
@@ -59,10 +59,12 @@ class ProcessOutput(object):
         if self.processor:
             self.processor.stream.write(buf)
 
-    def flush(self):
+    def flush(self):#sem skoci az na uplnom konci nahravania (nie kazdu sekundu)
         # When told to flush (this indicates end of recording), shut
         # down in an orderly fashion. First, add the current processor
         # back to the pool
+        print("Skace to aj sem do flushu")#sem to neskace
+        logging.info(': Skace to aj sem do flushu.')
         if self.processor:
             with self.lock:
                 self.pool.append(self.processor)
@@ -177,11 +179,7 @@ class Camera(object):
 
             try:
                 logging.info(': rPi HQ camera starts capturing.')
-                #logging.info(self.background_init_frames[0])
-                # print(type(self.background_init_frames[0]))
-                # print(self.background_init_frames[1])
-                # print(self.background_init_frames[2])
-                print("Pred ProcessOutput")#sem dojde
+                #print("Pred ProcessOutput")
                 # Set the ProcessOutput object
                 try:
                     #self.output = ProcessOutput(self.camPath, self.ROI, self.log_dec, self.background_init_frame)
@@ -189,14 +187,15 @@ class Camera(object):
                 except:
                     print("ProcessOutput odmieta vzniknut")
                #self.output = ProcessOutput(self.camPath, self.ROI, self.log_dec, self.background_init_frame)
-                print("Po ProcessOutput")
-                print("Camera.py zacina s videom a posuva ho dalej")
+               #print("Po ProcessOutput")
+                #print("Camera.py zacina s videom a posuva ho dalej")
                 # Capture sequence in 1s intervals until the stop flag occurs
                 self.camera.start_recording(self.output, format='mjpeg')
+                #self.camera.start_recording(self.camPath, format='mjpeg')
                 while eventCamera_capture.is_set():
                     self.camera.wait_recording(1)
                     self.greenLED.toggle()
-                    print("Video sa nataca z Camera.py")
+                    #print("Video sa nataca z Camera.py")
                 
                 self.camera.stop_recording()
                 self.greenLED.off()

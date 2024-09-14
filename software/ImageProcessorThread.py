@@ -31,9 +31,9 @@ class ImageProcessor(threading.Thread):
         self.counter = 0
 
         self.color = color
-        WhiteT = (50, 50, 30, 5000)
-        IRT = (50, 50, 30, 5000)
-        TurT = (50, 50, 30, 5000)#turtle :-D
+        WhiteT = (50, 400000, 30, 5000)#50
+        IRT = (50, 400000, 30, 5000)
+        TurT = (50, 400000, 30, 5000)#turtle :-D
         BackgroundFeatures=(WhiteT, IRT, TurT)
 
 
@@ -54,9 +54,6 @@ class ImageProcessor(threading.Thread):
             self.dyn_model = BackgroundModel(BackgroundFeatures[color], background_init_frame=background_init_frame)#zatial robi problemy toto
         except:
             print("Background model robi patalie")
-        #self.models[0] = BackgroundModel(50, 50, 30, 5000, background_init_frame=background_init_frameW)
-        #self.models[1] = BackgroundModel(50, 50, 30, 5000, background_init_frame=background_init_frameIR)
-        #self.models[2] = BackgroundModel(50, 50, 30, 5000, background_init_frame=background_init_frameTur)
 
         self.start()
 
@@ -81,23 +78,24 @@ class ImageProcessor(threading.Thread):
                     # Process only dynamic images
                     if self.dyn_model.update(gray):
                         # Put the image to the BeeCounter queue
-                        queueBeeCounter.put(image_bgr)
-
+                        # print("pred put")
+                        # queueBeeCounter.put(image_bgr)
+                        # print("Po put")
                         # Iterate the logging counter
                         self.counter += 1
 
                         print("bol updatnuty obrazok, som tesne pred ukladanim")
                         # Log the image
-                        if self.counter >= self.log_dec:#tu su patalie
+                        if self.counter >= self.log_dec:
                             try:
-                                print("1")
+                                #print("1")
                                 now = datetime.datetime.now()
-                                print("2")
+                                #print("2")
                                 imgLog = self.camPath + '/' + self.colors[self.color] + '/' + now.strftime("%y%m%d_%H%M%S%f") + '.jpeg'
                                 #imgLog = self.camPath + '/' + "W" + '/' + now.strftime("%y%m%d_%H%M%S%f") + '.jpeg'
-                                print("3")
+                                #print("3")
                                 image.save(imgLog, 'jpeg')
-                                print("4")
+                                #print("4")
                             except:
                                 print("Nejde ulozit obrazok")
                             print("Bol ulozeny obrazcok..... A mozno spravny, dopln kontrolu")
@@ -112,6 +110,7 @@ class ImageProcessor(threading.Thread):
                     logging.error(': Attemp to read image stream failed.')
                     
                 finally:
+                    print("Do finale Image proc skace")
                     # Reset the stream and event
                     self.stream.seek(0)
                     self.stream.truncate()
