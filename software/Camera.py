@@ -51,7 +51,7 @@ class ProcessOutput(object):
                     # this frame; you may want to print a warning
                     # here to see whether you hit this case
                     self.processor = None
-                    print("Asi nemam volne vlakno")
+                    #print("Asi nemam volne vlakno")
                     if self.busy == False:
                         logging.warning(': No processor available, the frame was skipeed.')
                         self.busy = True
@@ -63,7 +63,7 @@ class ProcessOutput(object):
         # When told to flush (this indicates end of recording), shut
         # down in an orderly fashion. First, add the current processor
         # back to the pool
-        print("Skace to aj sem do flushu")#sem to neskace
+        #print("Skace to aj sem do flushu")
         logging.info(': Skace to aj sem do flushu.')
         if self.processor:
             with self.lock:
@@ -98,6 +98,7 @@ class Camera(object):
         try:
             # Open the camera reference, set the iso and wait to settle
             self.camera = PiCamera(resolution=(1280, 720), framerate=fps)
+            self.camera.rotation=180#rotation, because I turned around cam during IR filter removing
             self.camera.iso = iso
             time.sleep(2)
 

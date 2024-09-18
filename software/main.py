@@ -29,8 +29,10 @@ def on_connect(client, userdata, flags, rc):
 def main():
 
     ## Wait two minutes to prevent a multiple restart
-    time.sleep(10)#120
+    time.sleep(1)#120
     
+    ImageProcessorThread.ReqColor=0
+
     #Connect to Raspberry Pico
     pico = RPico()
 
@@ -191,7 +193,7 @@ def main():
 
         # Turn on and off the camera capture together with the light
         if t_capture >= t_on and t_capture < t_off: 
-            pico.set_lights()#mozno doplnit nejaky if nech neposiela stale dookola tuto spravu
+            pico.set_lights(ImageProcessorThread.ReqColor)#mozno doplnit nejaky if nech neposiela stale dookola tuto spravu
             eventCamera_capture.set()
             #print("Main behol do zachytenia snimky")
         else:
@@ -316,13 +318,13 @@ def main():
                 line = line.split(" ")
                 if "W" in line[1]:
                     cam.SetColor=0
-                    ImageProcessorThread.GlobalColor=0
+                    ImageProcessorThread.SetColor=0
                 elif "IR" in line[1]:
                     cam.SetColor=1
-                    ImageProcessorThread.GlobalColor=1
+                    ImageProcessorThread.SetColor=1
                 elif "Tur" in line[1]:
                     cam.SetColor=2
-                    ImageProcessorThread.GlobalColor=2
+                    ImageProcessorThread.SetColor=2
                 #print(line[1])
             
             else:

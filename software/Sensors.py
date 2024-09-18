@@ -27,7 +27,8 @@ class RPico(object):
         self.errorIllumination=0
         self.colors=["W","IR","Tur"]
         #self.color=0
-        self.intensity=32768
+        self.intensity = 0
+        self.intensities = [15000,13500,15000]
 
         try_n = 2
         port_not_binded = True
@@ -65,10 +66,10 @@ class RPico(object):
                 logging.error(': Raspberry Pico set ports failure.')
                 self.errorMeasure = 1
 
-    def set_lights(self):
+    def set_lights(self,RColor):
         try:
-            #mess = "ILLUminATion:{};{};\n".format(self.colors[Color],self.intensity)
-            mess = "START ILLUminATion\n"
+            mess = "ILLUminATion:{};{};\n".format(self.colors[RColor],self.intensities[RColor])
+            #mess = "START ILLUminATion\n"
             self.s.write(bytes(mess,'UTF-8'))
         except:
             if self.errorIllumination == 0:
