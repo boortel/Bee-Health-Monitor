@@ -32,7 +32,7 @@ class Microphone(object):
         self.chans = 1 # 1 channel
         self.samp_rate = 44100 # 44.1kHz sampling rate
         self.chunk = 4096 # 2^12 samples for buffer
-       	self.recordTime = recordTime # seconds to record
+        self.recordTime = recordTime # seconds to record
 
         try:
             with noalsaerr():
@@ -49,6 +49,7 @@ class Microphone(object):
                                 self.dev_index=devinfo["index"]
                                 break
         except:
+            print("Mikrofon sa neinicializoval")
             logging.error(': USB mic initialization failure.')
 
         # TODO: get the index dynamically based on the Mic_Init

@@ -79,17 +79,19 @@ class ImageProcessor(threading.Thread):
         #print("ImageProcessor thread bezi")
         global ReqColor
         while not self.terminated:
+            #print("self.terminated nie je 0")
             # Wait for an image to be written to the stream
-            if self.event.wait(1):
+            if self.event.wait(1):#Tu som mal true
                 #print("ReqColor: "+str(ReqColor))
                 if ReqColor==SetColor:
                     try:
                         #start=time.time()
-                        
+                        #print("Pred otvorenim suboru s obrazkom")
                         self.stream.seek(0)
 
                         # Read the image and do some processing on it
                         image = Image.open(self.stream)
+                        #print("Po otvoreni suboru s obrazkom")
                         image = image.crop(self.ROI)
                         ReqColor=ReqColor+1
                         if ReqColor>=3:

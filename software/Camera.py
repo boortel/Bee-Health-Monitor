@@ -36,6 +36,7 @@ class ProcessOutput(object):
         self.busy = False
 
     def write(self, buf):
+        #print("Vo write")
         if buf.startswith(b'\xff\xd8'):
             # New frame; set the current processor going and grab
             # a spare one
@@ -187,18 +188,19 @@ class Camera(object):
                     self.output = ProcessOutput(self.camPath, self.ROI, self.log_dec, SetColor, self.base_path)
                 except:
                     print("ProcessOutput odmieta vzniknut")
-               #self.output = ProcessOutput(self.camPath, self.ROI, self.log_dec, self.background_init_frame)
-               #print("Po ProcessOutput")
+                #self.output = ProcessOutput(self.camPath, self.ROI, self.log_dec, self.background_init_frame)
+                #print("Po ProcessOutput")
                 #print("Camera.py zacina s videom a posuva ho dalej")
                 # Capture sequence in 1s intervals until the stop flag occurs
                 self.camera.start_recording(self.output, format='mjpeg')
-                #self.camera.start_recording(self.camPath, format='mjpeg')
+                #self.camera.capture(self.output, format='jpeg')
+                logging.info("Mal by zachytit fotku")
                 while eventCamera_capture.is_set():
                     self.camera.wait_recording(1)
                     self.greenLED.toggle()
                     #print("Video sa nataca z Camera.py")
                 
-                self.camera.stop_recording()
+                #self.camera.stop_recording()
                 self.greenLED.off()
 
                 logging.info(': rPi HQ camera stopped capturing.')
