@@ -7,7 +7,7 @@ import cv2
 import os
 import io
 
-#import time
+import time
 
 import numpy as np
 
@@ -21,7 +21,7 @@ ReqColor=0
 
 # Image processing thread
 class ImageProcessor(threading.Thread):
-    def __init__(self, owner, camPath, ROI, log_dec, color, base_path):
+    def __init__(self, owner, camPath, ROI, log_dec, base_path):
         super(ImageProcessor, self).__init__()
         self.stream = io.BytesIO()
         self.event = threading.Event()
@@ -35,7 +35,10 @@ class ImageProcessor(threading.Thread):
 
         self.counter = 0
 
-        self.color = color
+        self.ActualTime=time.time()
+        self.PreviousTime=self.ActualTime
+        self.TimePeriod=12
+
         WhiteT = (50, 50, 30, 5000)#50
         IRT = (50, 50, 30, 5000)
         TurT = (50, 50, 30, 5000)#turtle :-D
@@ -84,8 +87,9 @@ class ImageProcessor(threading.Thread):
             if self.event.wait(1):#Tu som mal true
                 #print("ReqColor: "+str(ReqColor))
                 if ReqColor==SetColor:
+                    #start=time.time()
                     try:
-                        #start=time.time()
+                        #self.ActualTime=time.time()
                         #print("Pred otvorenim suboru s obrazkom")
                         self.stream.seek(0)
 
@@ -93,9 +97,11 @@ class ImageProcessor(threading.Thread):
                         image = Image.open(self.stream)
                         #print("Po otvoreni suboru s obrazkom")
                         image = image.crop(self.ROI)
+                        SaveColor=SetColor
                         ReqColor=ReqColor+1
                         if ReqColor>=3:
                             ReqColor=0
+
                         # RGB -> BGR, Color to Gray
                         image_bgr = np.asarray(image)[..., ::-1]
                         gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
@@ -104,6 +110,7 @@ class ImageProcessor(threading.Thread):
                         
                         # Process only dynamic images
                         try:
+                            
                             if self.dyn_models[SetColor].update(gray):# a sem to uz neskace, do macky
                                 # Put the image to the BeeCounter queue
                                 # queueBeeCounter.put(image_bgr)
@@ -113,21 +120,23 @@ class ImageProcessor(threading.Thread):
                                 #print("bol updatnuty obrazok, som tesne pred ukladanim")
                                 # Log the image
                                 if self.counter >= self.log_dec:
-                                    try:
-                                        now = datetime.datetime.now()
-                                        imgLog = self.camPath + '/' + self.colors[SetColor] + '/' + now.strftime("%y%m%d_%H%M%S%f") + '.jpeg'
-                                        image.save(imgLog, 'jpeg')
-                                    except:
-                                        print("Nejde ulozit obrazok")
+                                    now = datetime.datetime.now()
+                                    imgLog = self.camPath + '/' + self.colors[SaveColor] + '/' + now.strftime("%y%m%d_%H%M%S%f") + '.jpeg'
+                                    image.save(imgLog, 'jpeg')
                                     #print("Bol ulozeny obrazcok..... A mozno spravny, dopln kontrolu")
                                     #logging.debug(': Write image as: ' + imgLog + '.')
                                     self.counter = 0
-                            # end=time.time()
-                            # print(end-start)
+                            #end=time.time()
+                            #print("Cas: "+str(end-start))
 
                             # Set done to True if you want the script to terminate
                             # at some point
                             #self.owner.done=True
+                            # if self.ActualTime-self.PreviousTime>=self.TimePeriod:
+                            #     self.PreviousTime=self.ActualTime
+                            #     ReqColor=ReqColor+1
+                            #     if ReqColor>=3:
+                            #         ReqColor=0
                         except:
                             print("Nieco sa pototo")
                         finally:
@@ -138,11 +147,10 @@ class ImageProcessor(threading.Thread):
                         logging.error(': Attemp to read image stream failed.')
                         
                     finally:
-                        #print("Do finale Image proc skace")
                         # Reset the stream and event
                         
-                        self.stream.seek(0)
-                        self.stream.truncate()
+                        self.stream.seek(0)#setne sa na poziciu 0
+                        self.stream.truncate()#zmeni velkost na hodnotu pozicie - teda na 0
                         self.event.clear()
                         # Return ourselves to the available pool
                         with self.owner.lock:

@@ -95,7 +95,7 @@ def main():
     
 
     if driveName != 'NaN':
-        #logPath = '/media/pi/' + driveName + '/log/Log_' + timeString #sem nevie zapisovat
+        #logPath = '/media/pi/' + driveName + '/log/Log_' + timeString #sem nedokaze zapisovat
         logPath = '/home/pi/Documents/Log' + driveName + '/log/Log_' + timeString
         driveSet = False
 
@@ -193,9 +193,8 @@ def main():
 
         # Turn on and off the camera capture together with the light
         if t_capture >= t_on and t_capture < t_off: 
-            pico.set_lights(ImageProcessorThread.ReqColor)#mozno doplnit nejaky if nech neposiela stale dookola tuto spravu
+            pico.set_lights(ImageProcessorThread.ReqColor)
             eventCamera_capture.set()
-            #print("Main behol do zachytenia snimky")
         else:
             eventCamera_capture.clear()
 
@@ -304,15 +303,12 @@ def main():
                 redLED.off()
 
             elif "STOP" in line:
-                #print("Bolo stlacene STOP talcidlo 1")
                 pico.clear_lights()
                 eventCamera_capture.clear()
                 time.sleep(2)
                 eventCameraThread_run.clear()
                 pico.close()
                 log = False
-                #print("Bolo stlacene STOP talcidlo 2")
-                #print(log)
             
             elif "color was set" in line:
                 line = line.split(" ")

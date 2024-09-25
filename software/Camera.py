@@ -21,54 +21,50 @@ eventCamera_capture = threading.Event()
 
 # Object to create image processing and saving threads
 class ProcessOutput(object):
-    def __init__(self, camPath, ROI, log_dec, SetColor, base_path):
+    def __init__(self, camPath, ROI, log_dec, base_path):
     #def __init__(self, camPath, ROI, log_dec, background_init_frame):
         self.done = False
-        #print("Konstruktor ProcessOutput")
         # Construct a pool of 4 image processors along with a lock
         # to control access between threads        
         self.lock = threading.Lock()
         try:
-            self.pool = [ImageProcessor(self, camPath, ROI, log_dec, SetColor, base_path) for i in range(4)]
+            self.pool = [ImageProcessor(self, camPath, ROI, log_dec, base_path) for i in range(4)]
         except:
             print("Pre zmenu odmieta vzniknut ImageProcessor")
         self.processor = None
         self.busy = False
 
     def write(self, buf):
-        #print("Vo write")
         if buf.startswith(b'\xff\xd8'):
+            #print("Pocet volnych procesorov v pooli: "+str(len(self.pool)))
             # New frame; set the current processor going and grab
             # a spare one
-            #print(len(self.pool))
             if self.processor:
                 self.processor.event.set()
             with self.lock:
-                if self.pool:
-                    self.processor = self.pool.pop()#do premennej priradi vlakno?
+                if self.pool:#Ak je dostupne vlakno
+                    self.processor = self.pool.pop()#do premennej priradi vlakno
                     self.busy = False
                 else:
                     # No processor's available, we'll have to skip
                     # this frame; you may want to print a warning
                     # here to see whether you hit this case
-                    self.processor = None
+                    self.processor = None#                                   preco?
                     #print("Asi nemam volne vlakno")
                     if self.busy == False:
                         logging.warning(': No processor available, the frame was skipeed.')
                         self.busy = True
                     
-        if self.processor:
+        if self.processor:#Ak je v premennej vlakno, zapis do neho
             self.processor.stream.write(buf)
 
     def flush(self):#sem skoci az na uplnom konci nahravania (nie kazdu sekundu)
         # When told to flush (this indicates end of recording), shut
         # down in an orderly fashion. First, add the current processor
         # back to the pool
-        #print("Skace to aj sem do flushu")
-        logging.info(': Skace to aj sem do flushu.')
         if self.processor:
             with self.lock:
-                self.pool.append(self.processor)
+                self.pool.append(self.processor)#navratenie vlakna do listu dostupnych vlakien
                 self.processor = None
         # Now, empty the pool, joining each thread as we go
         terminate = False
@@ -171,7 +167,7 @@ class Camera(object):
         except:
             logging.error(': BeeCounter thread closing failure.')
 
-    def capture(self,SetColor):
+    def capture(self):
 
         if eventCamera_capture.is_set():
 
@@ -185,7 +181,7 @@ class Camera(object):
                 # Set the ProcessOutput object
                 try:
                     #self.output = ProcessOutput(self.camPath, self.ROI, self.log_dec, self.background_init_frame)
-                    self.output = ProcessOutput(self.camPath, self.ROI, self.log_dec, SetColor, self.base_path)
+                    self.output = ProcessOutput(self.camPath, self.ROI, self.log_dec, self.base_path)
                 except:
                     print("ProcessOutput odmieta vzniknut")
                 #self.output = ProcessOutput(self.camPath, self.ROI, self.log_dec, self.background_init_frame)

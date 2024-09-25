@@ -28,7 +28,7 @@ class RPico(object):
         self.colors=["W","IR","Tur"]
         #self.color=0
         self.intensity = 0
-        self.intensities = [15000,13500,15000]
+        self.intensities = [20000,13500,35000]
 
         try_n = 2
         port_not_binded = True
