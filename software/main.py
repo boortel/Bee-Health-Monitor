@@ -15,6 +15,7 @@ from CameraThread import CameraThread
 from Sensors import Relay, RPico
 
 from Camera import eventCamera_capture
+import Camera
 from CameraThread import eventCameraThread_run
 from Microphone import Microphone
 import ImageProcessorThread 
@@ -31,7 +32,7 @@ def main():
     ## Wait two minutes to prevent a multiple restart
     time.sleep(1)#120
     
-    ImageProcessorThread.ReqColor=0
+    Camera.ReqColor=0
 
     #Connect to Raspberry Pico
     pico = RPico()
@@ -183,7 +184,9 @@ def main():
 
     data_logged = True
     ## Control the threads run and the camera capturing
+    RequestSend=False
     while log:
+        #start=time.time()
         if data_logged:
             t1 = time.time()
             data_logged=False
@@ -193,7 +196,11 @@ def main():
 
         # Turn on and off the camera capture together with the light
         if t_capture >= t_on and t_capture < t_off: 
-            pico.set_lights(ImageProcessorThread.ReqColor)
+            if Camera.ReqColor != Camera.SetColor and not RequestSend and Camera.ReqColor<3:
+                start=time.time()
+                #print("Cas prejdenia poziadavky z kamery do main: "+str(-Camera.BeforeColorSet+start))
+                pico.set_lights(Camera.ReqColor)
+                RequestSend=True
             eventCamera_capture.set()
         else:
             eventCamera_capture.clear()
@@ -304,23 +311,32 @@ def main():
 
             elif "STOP" in line:
                 pico.clear_lights()
-                eventCamera_capture.clear()
+                try:
+                    eventCamera_capture.clear()
+                except:
+                    print("1")
                 time.sleep(2)
-                eventCameraThread_run.clear()
+                try:
+                    eventCameraThread_run.clear()
+                except:
+                    print("2")
                 pico.close()
                 log = False
             
             elif "color was set" in line:
                 line = line.split(" ")
                 if "W" in line[1]:
-                    cam.SetColor=0
-                    ImageProcessorThread.SetColor=0
+                    #cam.SetColor=0
+                    Camera.SetColor=0
                 elif "IR" in line[1]:
-                    cam.SetColor=1
-                    ImageProcessorThread.SetColor=1
+                    #cam.SetColor=1
+                    Camera.SetColor=1
                 elif "Tur" in line[1]:
-                    cam.SetColor=2
-                    ImageProcessorThread.SetColor=2
+                    #cam.SetColor=2
+                    Camera.SetColor=2
+                end=time.time()
+                #print("Stolny tenis medzi RPI a picom: "+str(end-start))
+                RequestSend=False
                 #print(line[1])
             
             else:
@@ -339,7 +355,8 @@ def main():
             os.system('sudo reboot')
         
         time.sleep(0.1)
-
+        #end=time.time()
+        #print("Log slucka v maine: "+str(end-start))
     #client.loop_stop()
     
 ## Run the main function

@@ -11,6 +11,8 @@ from functools import partial
 from picamera import PiCamera
 
 from Sensors import Relay
+
+import ImageProcessorThread
 from ImageProcessorThread import ImageProcessor
 
 from BeeCounter.tracker import Tunnel
@@ -18,6 +20,11 @@ from BeeCounter.BeeCounterThread import BeeCounterThread, eventBeeCounter
 
 # Event to stop camera capturing
 eventCamera_capture = threading.Event()
+BeforeColorSet=0
+
+SetColor=4
+ReqColor=0
+SaveColor=0
 
 # Object to create image processing and saving threads
 class ProcessOutput(object):
@@ -28,14 +35,21 @@ class ProcessOutput(object):
         # to control access between threads        
         self.lock = threading.Lock()
         try:
-            self.pool = [ImageProcessor(self, camPath, ROI, log_dec, base_path) for i in range(4)]
+            #self.pool = [ImageProcessor(self, camPath, ROI, log_dec, base_path) for i in range(3)]#4, vyskusanych aj 6
+            self.pool = [ImageProcessor(self, camPath, ROI, log_dec, base_path) for i in range(1)]
         except:
             print("Pre zmenu odmieta vzniknut ImageProcessor")
         self.processor = None
         self.busy = False
+        self.ActualTime=time.time()
+        self.PreviousTime=self.ActualTime
 
     def write(self, buf):
+        global ReqColor
+        global SetColor
+        global BeforeColorSet
         if buf.startswith(b'\xff\xd8'):
+            start=time.time()
             #print("Pocet volnych procesorov v pooli: "+str(len(self.pool)))
             # New frame; set the current processor going and grab
             # a spare one
@@ -54,9 +68,28 @@ class ProcessOutput(object):
                     if self.busy == False:
                         logging.warning(': No processor available, the frame was skipeed.')
                         self.busy = True
+            
+            # while ReqColor!=SetColor:
+            #     pass
+            #ImageProcessorThread.SaveColor=ImageProcessorThread.SetColor
+            #BeforeColorSet=time.time()
+            # ImageProcessorThread.ReqColor=ImageProcessorThread.ReqColor+1
+            # if ImageProcessorThread.ReqColor>=3:
+            #     ImageProcessorThread.ReqColor=0
+            # while(ImageProcessorThread.ReqColor!=ImageProcessorThread.SetColor):
+            #     pass
+            #AfterColorSet=time.time()
+            #print("Zapis z kamery: "+str(BeforeColorSet-start))
+            #print("Zapis z kamery a nastavenie farby: "+str(AfterColorSet-start))
                     
         if self.processor:#Ak je v premennej vlakno, zapis do neho
             self.processor.stream.write(buf)
+            self.processor.GiveMeInformationAboutColor(SetColor)
+            ReqColor=ReqColor+1
+            if ReqColor>=3:
+                ReqColor=0
+                while ReqColor!=SetColor:
+                    pass
 
     def flush(self):#sem skoci az na uplnom konci nahravania (nie kazdu sekundu)
         # When told to flush (this indicates end of recording), shut
