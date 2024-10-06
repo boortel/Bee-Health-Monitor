@@ -66,7 +66,7 @@ class ProcessOutput(object):
                     self.processor = None#                                   preco?
                     #print("Asi nemam volne vlakno")
                     if self.busy == False:
-                        logging.warning(': No processor available, the frame was skipeed.')
+                        #logging.warning(': No processor available, the frame was skipeed.')
                         self.busy = True
             
             # while ReqColor!=SetColor:
@@ -88,8 +88,8 @@ class ProcessOutput(object):
             ReqColor=ReqColor+1
             if ReqColor>=3:
                 ReqColor=0
-                while ReqColor!=SetColor:
-                    pass
+            while ReqColor!=SetColor:
+                pass
 
     def flush(self):#sem skoci az na uplnom konci nahravania (nie kazdu sekundu)
         # When told to flush (this indicates end of recording), shut
@@ -225,7 +225,7 @@ class Camera(object):
                 #self.camera.capture(self.output, format='jpeg')
                 logging.info("Mal by zachytit fotku")
                 while eventCamera_capture.is_set():
-                    self.camera.wait_recording(1)
+                    self.camera.wait_recording(0.2)#1
                     self.greenLED.toggle()
                     #print("Video sa nataca z Camera.py")
                 

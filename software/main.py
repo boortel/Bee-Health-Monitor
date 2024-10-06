@@ -96,8 +96,8 @@ def main():
     
 
     if driveName != 'NaN':
-        #logPath = '/media/pi/' + driveName + '/log/Log_' + timeString #sem nedokaze zapisovat
-        logPath = '/home/pi/Documents/Log' + driveName + '/log/Log_' + timeString
+        logPath = '/media/pi/' + driveName + '/log/Log_' + timeString #sem nedokaze zapisovat... treba USB
+        #logPath = '/home/pi/Documents/Log' + driveName + '/log/Log_' + timeString
         driveSet = False
 
     #    cfg_path = '/media/pi/' + driveName + '/BeeLogger.ini'
@@ -204,6 +204,7 @@ def main():
             eventCamera_capture.set()
         else:
             eventCamera_capture.clear()
+            pico.clear_lights()
 
         # Stop the logging if the stop flag and time are set
         if logStop and t_now >= t_stop: #and not(eventSensorThread_measure.is_set()):
@@ -286,7 +287,7 @@ def main():
                         client.publish(MQTT_PATH,json_str)
                 except:
                     last_message = json_str
-                    logging.info(": Could not send message to DB")
+                    #logging.info(": Could not send message to DB")
                         
                 # Create log
                 row = [f'{timeStampM:s}', f'{co2_eq_ppm}',  f'{tvoc_ppb}', f'{float(TempIn_1):.2f}', f'{float(HumIn_1):.2f}', f'{float(TempIn_2):.2f}', f'{float(HumIn_2):.2f}',f'{float(TempOut):.2f}', f'{float(HumOut):.2f}', f'{float(PressOut):.2f}', f'{Light}', f'{Weight}',f'{BeeIn}', f'{BeeOut}']
