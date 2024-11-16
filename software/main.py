@@ -94,32 +94,39 @@ def main():
         port_HX711 = cfg.getint('Sensors', 'port_HX711')
         port_light = cfg.getint('Sensors', 'port_LightS_1')
     
+    print("Pred ifom")
+    #if driveName != 'NaN':
+    logPath = '/media/pi/' + driveName + '/log/Log_' + timeString #sem nedokaze zapisovat... treba USB
+    #logPath = '/home/pi/Documents/Log' + driveName + '/log/Log_' + timeString
+    #driveSet = False
+        
+#    cfg_path = '/media/pi/' + driveName + '/BeeLogger.ini'
+#    # Reload the ini file from USB drive if present
+#    if os.path.exists(cfg_path):
+#        cfg.read(cfg_path)
 
-    if driveName != 'NaN':
-        logPath = '/media/pi/' + driveName + '/log/Log_' + timeString #sem nedokaze zapisovat... treba USB
-        #logPath = '/home/pi/Documents/Log' + driveName + '/log/Log_' + timeString
-        driveSet = False
-
-    #    cfg_path = '/media/pi/' + driveName + '/BeeLogger.ini'
-    #    # Reload the ini file from USB drive if present
-    #    if os.path.exists(cfg_path):
-    #        cfg.read(cfg_path)
-
-    else:
-        logPath = 'log/Log_' + timeString
-        logPath = os.path.join(base_path, logPath)
-        driveSet = True
+    #else:
+    DefaultLogPath = '/home/pi/Documents/Log' + driveName + '/log/Log_' + timeString
+    #DefaultLogPath = os.path.join(base_path, DefaultLogPath)
+    #driveSet = True
 
     if not os.path.exists(logPath):
-        os.makedirs(logPath)
+        try:
+            os.makedirs(logPath)
+            #print("Zapis na USB")
+        except:
+            if not os.path.exists(DefaultLogPath):
+                os.makedirs(DefaultLogPath)
+                logPath=DefaultLogPath
+                #print("Zapis na SD")
 
     # Initialize program logging
     logging.basicConfig(filename = logPath + '/ProgramLog.txt',  level=logging.DEBUG, format='(%(asctime)s %(threadName)-10s %(levelname)-7s) %(message)s',)
     #logging.basicConfig(level=logging.DEBUG, format='(%(asctime)s %(threadName)-10s %(levelname)-7s) %(message)s',)
 
     # Log warning message if the drive not set
-    if driveSet:
-        logging.warning(': USB drive name is not set, saving to the default path.')
+    # if driveSet:
+    #     logging.warning(': USB drive name is not set, saving to the default path.')
 
     t_on = datetime.time(hour = lightOn_hour, minute = lightOn_minute)
     t_off = datetime.time(hour = lightOff_hour, minute = lightOff_minute)
