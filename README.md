@@ -31,6 +31,7 @@ Besides the *Bee Health Monitor* platform, we would like to present our bee rela
   -  [Machine learning and computer vision techniques in continuous beehive monitoring applications: A survey](https://www.sciencedirect.com/science/article/pii/S0168169923009481?dgcid=author): survey article focusing on the visual based bee health monitoring methods. A full version of the paper has a restricted access, a free preprint is available [here](https://arxiv.org/abs/2208.00085).
   -  [Computer Vision Approaches for Automated Bee Counting Application](https://www.sciencedirect.com/science/article/pii/S2405896324004580): paper comparing three possible approaches in the bee counting.
   -  [Varroa destructor detection on honey bees using hyperspectral imagery](https://www.sciencedirect.com/science/article/pii/S0168169924006100?dgcid=rss_sd_all): article describing a possible use of the hypespectral imaging in Varroa mite detection.
+  -  [Towards Varroa destructor mite detection using a narrow spectra illumination](https://arxiv.org/abs/2504.06099): paper describing initial experiments with the narrow spectra illumination for Varroa mite detection.
  
 - Final thesis
   - [Approximation of functions determining colony activity using neural networks](https://www.vut.cz/studenti/zav-prace/detail/151629): Thesis describing the development of the setup presented in paper *Raspberry Pi Bee Health Monitoring Device* in a more detail together with further clustering experiments.
