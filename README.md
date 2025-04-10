@@ -24,6 +24,7 @@ Besides the *Bee Health Monitor* platform, we would like to present our bee rela
   - [Bee Dataset BUT-1](https://www.kaggle.com/datasets/imonbilk/bee-dataset-but-1): dataset collected with the first generation of our device. It contains only image data.
   - [Bee Dataset BUT-2](https://www.kaggle.com/datasets/imonbilk/bee-dataset-but-2): dataset collected with the second generation of our device. It contains image, sound and sensor data.
   - [Bee Dataset BUT-HS](https://www.kaggle.com/datasets/imonbilk/bee-dataset-but-hs): hyperspectral dataset containing images of bees, Varroa mites and detritus.
+  - [Bee Dataset BUT-HS2](https://www.kaggle.com/datasets/masuel/bee-hyperspectral-dataset): dataset containing images of bees and Varroa mites under narrow spectra illumination used for the experiments with visual Varroa detection.
  
 - Research papers
   -  [Visual Diagnosis of the Varroa Destructor Parasitic Mite in Honeybees Using Object Detector Techniques](https://www.mdpi.com/1424-8220/21/8/2764): article describing the Varroa mite detection using the YOLOv5 network.
