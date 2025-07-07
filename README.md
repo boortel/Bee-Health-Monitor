@@ -37,7 +37,6 @@ Besides the *Bee Health Monitor* platform, we would like to present our bee rela
 - Final thesis
   - [Approximation of functions determining colony activity using neural networks](https://www.vut.cz/studenti/zav-prace/detail/151629): Master thesis describing the development of the setup presented in paper *Raspberry Pi Bee Health Monitoring Device* in a more detail together with further clustering experiments.
   - [Visual Detection of the Parasitic Mites on the Honeybee](https://www.vut.cz/en/students/final-thesis/detail/167591): Master thesis describing the development of the narrow spectra illumination unit and following experiments evolving the findings described in article *Varroa destructor detection on honey bees using hyperspectral imagery*. Summary of the thesis is presented in paper *Towards Varroa destructor mite detection using a narrow spectra illumination*.
-  - [Analysis of the audio signal components recorded in the bee hive for efective artificial inteligence learning](https://www.vut.cz/en/students/final-thesis/detail/167452): Bachelor thesis evolving the findings described in the previous master thesis *Approximation of functions determining colony activity using neural networks* with the focus on processing audio data.
 
 ## Software
 
