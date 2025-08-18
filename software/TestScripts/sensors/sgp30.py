@@ -1,5 +1,3 @@
-# Please note - sensor has to run at least for 15s to start measurements
-
 import os
 import sys
 import time
@@ -83,29 +81,4 @@ class SGP30:
     def __write_cmd(self, cmd: list[int]) -> None:
         """Write a command to the sensor."""
         self.i2cbus.write_i2c_block_data(self._addr, cmd[0], cmd[1:])
-
-def main():
-    sgp = SGP30(0x01)
-
-    if not sgp.begin():
-        print("SGP30 sensor initialization failed")
-    else:
-        while True:
-            eCO2, TVOC, crc_error = sgp.get_air_quality()
-            if crc_error:
-                print("CRC               : Error\n")
-            else:
-                print(f"eCO2              : {eCO2} ppm")
-                print(f"TVOC              : {TVOC} ppb")
-                print("CRC               : OK\n")
-            time.sleep(1)
-
-if __name__ == '__main__':
-    try:
-        main()
-    except KeyboardInterrupt:
-        print('Interrupted')
-        try:
-            sys.exit(0)
-        except SystemExit:
-            os._exit(0)
+        

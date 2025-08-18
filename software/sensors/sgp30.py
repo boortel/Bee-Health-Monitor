@@ -1,17 +1,9 @@
-# Please note - sensor has to run at least for 15s to start measurements
-
 import os
 import sys
 import time
 import logging
 
 import smbus2 as smbus
-
-# Debug logging
-logging.basicConfig()
-logger = logging.getLogger(__name__)
-# Uncomment to enable debug logging
-# logger.setLevel(logging.DEBUG)
 
 class SGP30:
     def __init__(self, bus: int, address: int = 0x58) -> None:
@@ -36,7 +28,7 @@ class SGP30:
             time.sleep(0.01)
             return True
         except Exception as e:
-            logger.error(f"SGP30 init failed: {e}")
+            logging.error(f"SGP30 init failed: {e}")
             return False
 
     def get_air_quality(self) -> tuple[int, int, bool]:
@@ -58,10 +50,9 @@ class SGP30:
 
             crc_error = not (eCO2_crc_ok and TVOC_crc_ok)
 
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug(f"Raw data : {[hex(b) for b in data]}")
-                logger.debug(f"eCO2     : {eCO2} ppm, CRC OK: {eCO2_crc_ok}")
-                logger.debug(f"TVOC     : {TVOC} ppb, CRC OK: {TVOC_crc_ok}")
+            logging.debug(f"Raw data : {[hex(b) for b in data]}")
+            logging.debug(f"eCO2     : {eCO2} ppm, CRC OK: {eCO2_crc_ok}")
+            logging.debug(f"TVOC     : {TVOC} ppb, CRC OK: {TVOC_crc_ok}")
 
             return (eCO2, TVOC, crc_error)
         except Exception as e:
@@ -83,29 +74,4 @@ class SGP30:
     def __write_cmd(self, cmd: list[int]) -> None:
         """Write a command to the sensor."""
         self.i2cbus.write_i2c_block_data(self._addr, cmd[0], cmd[1:])
-
-def main():
-    sgp = SGP30(0x01)
-
-    if not sgp.begin():
-        print("SGP30 sensor initialization failed")
-    else:
-        while True:
-            eCO2, TVOC, crc_error = sgp.get_air_quality()
-            if crc_error:
-                print("CRC               : Error\n")
-            else:
-                print(f"eCO2              : {eCO2} ppm")
-                print(f"TVOC              : {TVOC} ppb")
-                print("CRC               : OK\n")
-            time.sleep(1)
-
-if __name__ == '__main__':
-    try:
-        main()
-    except KeyboardInterrupt:
-        print('Interrupted')
-        try:
-            sys.exit(0)
-        except SystemExit:
-            os._exit(0)
+        

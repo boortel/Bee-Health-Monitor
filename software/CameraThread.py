@@ -30,6 +30,7 @@ class CameraThread(threading.Thread):
         self.camera = Camera(fps, exp, iso, ROI, baseLog, log_dec)
 
         eventCameraThread_run.set()
+        self.run()
 
     def run(self):
         # This loop is run until stopped from main

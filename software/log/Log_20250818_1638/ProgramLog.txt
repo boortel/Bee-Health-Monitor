@@ -1,0 +1,4 @@
+(2025-08-18 16:38:13,551 MainThread WARNING) : USB drive name is not set, saving to the default path.
+(2025-08-18 16:38:14,378 MainThread INFO   ) : USB mic initialized.
+(2025-08-18 16:39:14,577 SensThread INFO   ) : Sensor data were written to the log.
+(2025-08-18 16:39:24,541 SensThread INFO   ) : Sound data were writen to the log.

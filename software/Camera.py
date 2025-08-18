@@ -8,9 +8,9 @@ import cv2
 import os
 
 from functools import partial
-from picamera import PiCamera
+from picamera2 import Picamera2
 
-from Sensors import Relay
+
 from ImageProcessorThread import ImageProcessor
 
 from BeeCounter.tracker import Tunnel
@@ -86,7 +86,7 @@ class Camera(object):
 
         try:
             # Open the camera reference, set the iso and wait to settle
-            self.camera = PiCamera(resolution=(1280, 720), framerate=fps)
+            self.camera = Picamera2(resolution=(1280, 720), framerate=fps)
             self.camera.iso = iso
             time.sleep(2)
 
