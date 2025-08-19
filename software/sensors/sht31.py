@@ -4,6 +4,7 @@ import time
 import logging
 import smbus2 as smbus
 
+from numpy import NaN
 
 class SHT31:
     def __init__(self, bus: int, address: int) -> None:
@@ -28,7 +29,7 @@ class SHT31:
             time.sleep(0.01)
             return True
         except Exception as e:
-            logging.error("Sensor initialization failed: %s", e)
+            logging.error(": SHT31 sensor initialization failed: %s", e)
             return False
 
     def get_temperature_and_humidity(self) -> tuple[float, float, bool]:
@@ -41,15 +42,16 @@ class SHT31:
         try:
             self.i2cbus.write_i2c_block_data(self._addr, 0x24, [0x00])
         except Exception as e:
-            logging.error("Failed to send measurement command: %s", e)
+            logging.error(": SHT31 failed to send measurement command: %s", e)
             return (0.0, 0.0, True)
 
         time.sleep(0.015)  # Wait for measurement
 
         try:
             data = self.i2cbus.read_i2c_block_data(self._addr, 0x00, 6)
+            time.sleep(0.05)
         except Exception as e:
-            logging.error("Failed to read data: %s", e)
+            logging.error(": SHT31 failed to read data: %s", e)
             return (0.0, 0.0, True)
 
         # Unpack data
@@ -57,17 +59,20 @@ class SHT31:
         temp_crc = data[2]
         hum_raw = data[3] << 8 | data[4]
         hum_crc = data[5]
-
-        # CRC check
-        if self.__crc8(data[0:2]) != temp_crc or self.__crc8(data[3:5]) != hum_crc:
-            logging.warning("CRC check failed")
-            return (0.0, 0.0, True)
-
+        
         # Convert to temperature and humidity
         temperature = -45 + (175 * temp_raw / 65535.0)
         humidity = 100 * hum_raw / 65535.0
 
-        logging.debug(f"Temperature: {temperature:.2f}°C, Humidity: {humidity:.2f}%, CRC OK")
+        logging.debug(f"Raw data : {[hex(b) for b in data]}")
+        logging.debug(f"Temperature  : {temperature} °C, CRC OK: {temp_crc}")
+        logging.debug(f"Humidity     : {humidity} %, CRC OK: {hum_crc}")
+
+        # CRC check
+        if self.__crc8(data[0:2]) != temp_crc or self.__crc8(data[3:5]) != hum_crc:
+            logging.warning(": SHT31 CRC check failed")
+            return (NaN, NaN, True)
+        
         return (temperature, humidity, False)
 
     def __crc8(self, data: list[int]) -> int:

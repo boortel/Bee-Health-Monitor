@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import time
+import logging
+
 from enum import Enum
+from numpy import NaN
 from smbus2 import SMBus, i2c_msg, I2cFunc
 
-SMBUS = True
-DEBUG = False
 
 # QMP6988
 ADDRESS_0            = 0x70
@@ -149,61 +150,49 @@ K_PARAM = {
 
 class PiQmp6988(object):
     def __init__(self, bus, config={}):
-        self.k  = {}
+        self.k = {}
         self.config = {}
-        self.bus = SMBus(bus)
-        time.sleep(0.02)
+
+        try:
+            self.bus = SMBus(bus)
+            time.sleep(0.02)
+        except Exception as e:
+            logging.error("Failed to initialize SMBus: %s", e)
+            raise  # Re-raise the exception after logging
+
         config_i = {
-            'address' : Address.LOW.value,
-            'filter' : Filter.COEFFECT_OFF.value,
+            'address': Address.LOW.value,
+            'filter': Filter.COEFFECT_OFF.value,
             'mode': Powermode.SLEEP.value,
-            'pressure' : Oversampling.SKIP.value,
-            'temperature' : Oversampling.SKIP.value
+            'pressure': Oversampling.SKIP.value,
+            'temperature': Oversampling.SKIP.value
         }
+
         self.__modify_config(config_i)
         self.__modify_config(config)
-        #self.__pre_process()
 
-      
-        # QMP6988
-        if SMBUS:
-            if DEBUG:
-                print('Attempt to read ID')
+        try:
+            logging.debug('Attempt to read ID')
             data = self.bus.read_i2c_block_data(self.config['address'], REG_CHIP_ID, CHIP_ID_LENGTH)
-            if DEBUG:
-                print('Read ID')
-                print(data)
-        else:
-            len, data = self.pi.i2c_read_i2c_block_data(self.qmp6988, REG_CHIP_ID, CHIP_ID_LENGTH)
+            logging.debug('Read ID: %s', data)
+        except Exception as e:
+            logging.error("Failed to read chip ID: %s", e)
+            raise  # Re-raise the exception after logging
 
-        if SMBUS:
-            if DEBUG:
-                print('Attempt to read coefs')
+        try:
+            logging.debug('Attempt to read coefficients')
             data = self.bus.read_i2c_block_data(self.config['address'], REG_COE, COE_LENGTH)
-            if DEBUG:
-                print('Read coefs')
-                for d in data:
-                   print(d)
-        else:
-            len, data = self.pi.i2c_read_i2c_block_data(self.qmp6988, REG_COE, COE_LENGTH)
-        
-        self.__initialize_k(data)
-        self.__apply_config()
-        #self.__post_process()
+            logging.debug('Read coefficients: %s', data)
+        except Exception as e:
+            logging.error("Failed to read coefficients: %s", e)
+            raise  # Re-raise the exception after logging
 
-    def __pre_process(self):
-        """
-        pigpio
-        """
-
-        if SMBUS:
-            #self.bus.instance.open(1)
-            time.sleep(0.02)
-        else:
-            self.pi = pigpio.pi()
-            # I2C bus
-            self.qmp6988 = self.pi.i2c_open(1, self.config['address'])
-
+        try:
+            self.__initialize_k(data)
+            self.__apply_config()
+        except Exception as e:
+            logging.error("Failed to initialize or apply configuration: %s", e)
+            raise  # Re-raise the exception after logging
 
     def __post_process(self):
         """
@@ -290,19 +279,14 @@ class PiQmp6988(object):
         ----------
         mode : int
         """
-        if SMBUS:
-            data = self.bus.read_i2c_block_data(self.config['address'], REG_CTRL_MEAS, CTRL_MEAS_LENGTH)
-            len = CTRL_MEAS_LENGTH
-        else:
-            len, data = self.pi.i2c_read_i2c_block_data(self.qmp6988, REG_CTRL_MEAS, CTRL_MEAS_LENGTH)
+        data = self.bus.read_i2c_block_data(self.config['address'], REG_CTRL_MEAS, CTRL_MEAS_LENGTH)
+        len = CTRL_MEAS_LENGTH
+
         if (len == CTRL_MEAS_LENGTH):
             value = data[0] & 0xFC
-            
             value |= mode & 0x03
-            if SMBUS:
-                data = self.bus.write_i2c_block_data(self.config['address'], REG_CTRL_MEAS, [value])
-            else:
-                self.pi.i2c_write_i2c_block_data(self.qmp6988, REG_CTRL_MEAS, [value])
+
+            data = self.bus.write_i2c_block_data(self.config['address'], REG_CTRL_MEAS, [value])
             time.sleep(0.02)
 
     def __set_oversampling(self, mode, sampling):
@@ -321,19 +305,14 @@ class PiQmp6988(object):
         else:
             return
         
-        if SMBUS:
-            data = self.bus.read_i2c_block_data(self.config['address'], REG_CTRL_MEAS, CTRL_MEAS_LENGTH)
-            len = CTRL_MEAS_LENGTH
-        else:
-            len, data = self.pi.i2c_read_i2c_block_data(self.qmp6988, REG_CTRL_MEAS, CTRL_MEAS_LENGTH)
+        data = self.bus.read_i2c_block_data(self.config['address'], REG_CTRL_MEAS, CTRL_MEAS_LENGTH)
+        len = CTRL_MEAS_LENGTH
+        
         if (len == CTRL_MEAS_LENGTH):
             value = data[0] & mask
-            
             value |= (sampling & 0x07) << offset
-            if SMBUS:
-                data = self.bus.write_i2c_block_data(self.config['address'], REG_CTRL_MEAS, [value])
-            else:
-                self.pi.i2c_write_i2c_block_data(self.qmp6988, REG_CTRL_MEAS, [value])
+
+            data = self.bus.write_i2c_block_data(self.config['address'], REG_CTRL_MEAS, [value])
             time.sleep(0.02)
 
     def __set_filter(self, filter):
@@ -346,10 +325,8 @@ class PiQmp6988(object):
             IIR filter
         """
         value = filter & 0x07
-        if SMBUS:
-            data = self.bus.write_i2c_block_data(self.config['address'], REG_IIR_CNT, [value])
-        else:
-            self.pi.i2c_write_i2c_block_data(self.qmp6988, REG_IIR_CNT, [value])
+        
+        data = self.bus.write_i2c_block_data(self.config['address'], REG_IIR_CNT, [value])
         time.sleep(0.02)
 
     def __convert_signed(self, value, signed_bit):
@@ -413,50 +390,49 @@ class PiQmp6988(object):
     def read(self):
         """
         QMP6988
-        
+
         Returns
         -------
         value : dictionary
-            {'temperature': , 'pressure': }．
+            {'temperature': , 'pressure': }.
         """
-        #self.__pre_process()
-    
-        if SMBUS:
-            if DEBUG:
-                print('Attempt to read raw data')
-            data = self.bus.read_i2c_block_data(self.config['address'], REG_DATA, DATA_LENGTH)
-            #data = self.bus.read_i2c_block_data(0, 0xF7, 6)
-            len = DATA_LENGTH
-            if DEBUG:
-                print('Read raw data')
-        else:
-            len, data = self.pi.i2c_read_i2c_block_data(self.qmp6988, REG_DATA, DATA_LENGTH)
-        
-        self.__post_process()
-        
-        if (len == DATA_LENGTH):
-            self.k['dt'] = ((data[Data.TEMP_TXD2.value] << 16) | \
-                            (data[Data.TEMP_TXD1.value] << 8) | \
-                            (data[Data.TEMP_TXD0.value])) - SUBTRACTOR
-            
-            self.k['dp'] = ((data[Data.PRESS_TXD2.value] << 16) | \
-                            (data[Data.PRESS_TXD1.value] << 8) | \
-                            (data[Data.PRESS_TXD0.value])) - SUBTRACTOR
 
-            if (self.config['temperature'] != Oversampling.SKIP.value):
-                temperature = self.__convert_temperature()
+        try:
+            logging.debug('Attempt to read raw data')
+            data = self.bus.read_i2c_block_data(self.config['address'], REG_DATA, DATA_LENGTH)
+            len = DATA_LENGTH
+            logging.debug('Read raw data')
+
+            #self.__post_process()
+
+            if len == DATA_LENGTH:
+                self.k['dt'] = ((data[Data.TEMP_TXD2.value] << 16) | 
+                                (data[Data.TEMP_TXD1.value] << 8) | 
+                                (data[Data.TEMP_TXD0.value])) - SUBTRACTOR
+                
+                self.k['dp'] = ((data[Data.PRESS_TXD2.value] << 16) | 
+                                (data[Data.PRESS_TXD1.value] << 8) | 
+                                (data[Data.PRESS_TXD0.value])) - SUBTRACTOR
+
+                if self.config['temperature'] != Oversampling.SKIP.value:
+                    temperature = self.__convert_temperature()
+                else:
+                    temperature = NaN
+                
+                if self.config['pressure'] != Oversampling.SKIP.value:
+                    pressure = self.__convert_pressure()
+                else:
+                    pressure = NaN
             else:
-                temperature = False
-            
-            if (self.config['pressure'] != Oversampling.SKIP.value):
-                pressure = self.__convert_pressure()
-            else:
-                pressure = False
-        else:
-            temperature = False
-            pressure    = False
-        
-        value = {'temperature': temperature, \
-                 'pressure': pressure}
+                logging.warning("Data length mismatch: expected %d, got %d", DATA_LENGTH, len)
+                temperature = NaN
+                pressure = NaN
+
+        except Exception as e:
+            logging.error("Error reading data from QMP6988: %s", e)
+            temperature = NaN
+            pressure = NaN
+
+        value = {'temperature': temperature, 'pressure': pressure}
         
         return value

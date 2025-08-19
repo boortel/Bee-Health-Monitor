@@ -1,11 +1,11 @@
-import datetime
-import logging
 import os
+import wave
+import pyaudio
+import logging
+import datetime
 
 from contextlib import contextmanager
 from ctypes import *
-import pyaudio
-import wave
 
 # Error handler code to supress non-relevant warnings
 ERROR_HANDLER_FUNC = CFUNCTYPE(None, c_char_p, c_int, c_char_p, c_int, c_char_p)
@@ -25,9 +25,6 @@ def noalsaerr():
 class Microphone(object):
     # Class to control USB microphone
     def __init__(self, recordTime, baseLog):
-        self.errorRecord = 0
-        self.errorSaving = 0
-
         self.form_1 = pyaudio.paInt16 # 16-bit resolution
         self.chans = 1 # 1 channel
         self.samp_rate = 44100 # 44.1kHz sampling rate
@@ -53,9 +50,10 @@ class Microphone(object):
                 logging.info(': USB mic initialized.')
         except:
             logging.error(': USB mic initialization failure.')
+            return
 
         # Create the sound log folder if not exists
-        self.soundPath = baseLog + '/SoundLog'
+        self.soundPath = os.path.join(baseLog, 'SoundLog')
         if not os.path.exists(self.soundPath):
             os.makedirs(self.soundPath)
 
@@ -83,16 +81,14 @@ class Microphone(object):
             stream.stop_stream()
             stream.close()
 
-            self.errorRecord = 0
         except:
-            if self.errorRecord == 0:
-                logging.error(': USB mic recording failure.')
-                self.errorRecord = 1
+            logging.error(': USB mic recording failure.')
+            return
 
         # Generate the .waw file name
         now = datetime.datetime.now()
         timeStamp = now.strftime("%y%m%d_%H%M%S")
-        wav_output_filename = self.soundPath + '/' + timeStamp + '.wav'
+        wav_output_filename = os.path.join(self.soundPath, f"{timeStamp}.wav")
 
         try:
             # Save the audio frames as .wav file
@@ -104,8 +100,5 @@ class Microphone(object):
             wavefile.close()
 
             logging.info(': Sound data were writen to the log.')
-            self.errorSaving = 0
-        except:
-            if self.errorRecord == 0:
-                logging.error(': Sound data saving failure.')
-                self.errorRecord = 1
+        except Exception as e:
+            logging.error(f'Sound data saving failure: {e}')

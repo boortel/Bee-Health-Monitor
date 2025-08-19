@@ -56,9 +56,11 @@ class MeasurementsThread(threading.Thread):
         #if not self.gy302.begin():
         #    logging.error(': GY302 sensor initialization failed")
         
-
+    # Get floating average from the measured values
+    def get_average(self, buffer: list) -> float:
+        return sum(buffer) / len(buffer) if buffer else NaN
+    
     def run(self):
-        
         # Define the empty lists for floating average over the measurement period
         co2_buffer = []
         voc_buffer = []
@@ -73,7 +75,7 @@ class MeasurementsThread(threading.Thread):
         PressOut_buffer = []
         
         # Flag to control period of CO2 (every 1s) and others (every 2s) readouts
-        even_second = False
+        even_second = True
         
         # This loop is run until stopped from SensorThread
         while eventMeasurements_run.is_set():
@@ -89,42 +91,23 @@ class MeasurementsThread(threading.Thread):
     
             # Get the data from SGP30
             co2_eq_ppm, tvoc_ppb, sgp_error = self.sgp30.get_air_quality()
-            if sgp_error:
-                co2_eq_ppm = NaN
-                tvoc_ppb = NaN
-                logging.error(': SGP30 CRC error')
-            
             co2_buffer.append(co2_eq_ppm)
             voc_buffer.append(tvoc_ppb)
                 
             if even_second:
                 # DHT20 - inner temperature and humidity
                 TempIn, HumIn, dht_error = self.dht20.get_temperature_and_humidity()
-                if dht_error:
-                    TempIn = NaN
-                    HumIn = NaN
-                    logging.error(': DHT20 CRC error')
-                    
                 TempIn_buffer.append(TempIn)
                 HumIn_buffer.append(HumIn)
 
                 # SHT31 - outer temperature, humidity and pressure
                 TempOut, HumOut, sht_err = self.sht31.get_temperature_and_humidity()
-                if sht_err:
-                    TempOut = NaN
-                    HumOut = NaN
-                    logging.error(': SHT31 CRC error')
-                    
                 TempOut_buffer.append(TempOut)
                 HumOut_buffer.append(HumOut)
                     
                 # GY302 - light intensity
                 #LightOut = self.gy302.read_light()
                 LightOut = 1
-                if LightOut == -1:
-                    LightOut = NaN
-                    logging.error(': GY302 reading error')
-                
                 LightOut_buffer.append(LightOut)
                 
                 # QMP6988 - outer temperature, atmospheric pressure
@@ -140,33 +123,33 @@ class MeasurementsThread(threading.Thread):
             # Put the average measurements to the queue
             if eventMeasurementAVG_read.is_set():
                 # Compute average over the buffers
-                co2_avg = sum(co2_buffer) / len(co2_buffer) if co2_buffer else NaN
-                voc_avg = sum(voc_buffer) / len(voc_buffer) if voc_buffer else NaN
+                co2_avg = self.get_average(co2_buffer)
+                voc_avg = self.get_average(voc_buffer)
                 
-                TempIn_avg = sum(TempIn_buffer) / len(TempIn_buffer) if TempIn_buffer else NaN
-                HumIn_avg = sum(HumIn_buffer) / len(HumIn_buffer) if HumIn_buffer else NaN
+                TempIn_avg = self.get_average(TempIn_buffer)
+                HumIn_avg = self.get_average(HumIn_buffer)
                 
-                TempOut_avg = sum(TempOut_buffer) / len(TempOut_buffer) if TempOut_buffer else NaN
-                HumOut_avg = sum(HumOut_buffer) / len(HumOut_buffer) if HumOut_buffer else NaN
+                TempOut_avg = self.get_average(TempOut_buffer)
+                HumOut_avg = self.get_average(HumOut_buffer)
                 
-                LightOut_avg = sum(LightOut_buffer) / len(LightOut_buffer) if LightOut_buffer else NaN
-                PressOut_avg = sum(PressOut_buffer) / len(PressOut_buffer) if PressOut_buffer else NaN
+                LightOut_avg = self.get_average(LightOut_buffer)
+                PressOut_avg = self.get_average(PressOut_buffer)
                 
                 # Put the data to the queue
                 queueMeasurementAVG.put([co2_avg, voc_avg, TempIn_avg, HumIn_avg, TempOut_avg, HumOut_avg, PressOut_avg, LightOut_avg])
                 
                 # Restart the buffers
-                co2_buffer = []
-                voc_buffer = []
+                co2_buffer.clear()
+                voc_buffer.clear()
                 
-                TempIn_buffer = []
-                HumIn_buffer = []
+                TempIn_buffer.clear()
+                HumIn_buffer.clear()
                 
-                TempOut_buffer = []
-                HumOut_buffer = []
+                TempOut_buffer.clear()
+                HumOut_buffer.clear()
                 
-                LightOut_buffer = []
-                PressOut_buffer = []
+                LightOut_buffer.clear()
+                PressOut_buffer.clear()
                 
                 eventMeasurementAVG_read.clear()
             

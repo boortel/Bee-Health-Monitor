@@ -2,6 +2,8 @@ import time
 import logging
 import smbus2 as smbus
 
+from numpy import NaN
+
 class GY302:
     """GY-302 / BH1750 Light Sensor driver"""
 
@@ -35,7 +37,7 @@ class GY302:
             time.sleep(0.01)
             return True
         except Exception as e:
-            logging.error("Failed to initialize GY-302: %s", str(e))
+            logging.error(": GY302 sensor initialization failed: %s", e)
             return False
 
     def read_light(self, mode: int = CONT_H_RES_MODE) -> float:
@@ -49,22 +51,27 @@ class GY302:
         """
         try:
             self.i2cbus.write_byte(self._addr, mode)
-            if mode in [self.ONE_TIME_H_RES_MODE, self.ONE_TIME_H_RES_MODE2]:
-                time.sleep(0.18)  # Wait for measurement (max 180ms)
-            elif mode == self.ONE_TIME_L_RES_MODE:
-                time.sleep(0.024)  # Wait for measurement (max 24ms)
-            else:
-                time.sleep(0.18)  # Continuous modes still need delay for first read
-
-            data = self.i2cbus.read_i2c_block_data(self._addr, 0x00, 2)
-            raw = (data[0] << 8) + data[1]
-            lux = raw / 1.2  # Convert to lux
-
-            logging.debug("Raw data: 0x%02x%02x", data[0], data[1])
-            logging.debug("Light intensity: %.2f lux", lux)
-
-            return lux
-
         except Exception as e:
-            logging.error("Failed to read light from GY-302: %s", str(e))
-            return -1.0
+            logging.error(": GY302 failed to send measurement command: %s", e)
+            return (NaN)
+        
+        if mode in [self.ONE_TIME_H_RES_MODE, self.ONE_TIME_H_RES_MODE2]:
+            time.sleep(0.18)  # Wait for measurement (max 180ms)
+        elif mode == self.ONE_TIME_L_RES_MODE:
+            time.sleep(0.024)  # Wait for measurement (max 24ms)
+        else:
+            time.sleep(0.18)  # Continuous modes still need delay for first read
+        
+        try:
+            data = self.i2cbus.read_i2c_block_data(self._addr, 0x00, 2)
+        except Exception as e:
+            logging.error(": GY302 failed to read data: %s", e)
+            return (NaN)
+        
+        raw = (data[0] << 8) + data[1]
+        lux = raw / 1.2  # Convert to lux
+
+        logging.debug(f"Raw data : {[hex(b) for b in data]}")
+        logging.debug("Light intensity: %.2f lux", lux)
+
+        return lux

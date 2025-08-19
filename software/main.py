@@ -4,8 +4,8 @@ import time
 import json
 import psutil
 
-import datetime
 import logging
+import datetime
 import configparser
 
 from Camera import eventCamera_capture
@@ -24,8 +24,10 @@ def main():
     timeString = now.strftime("%Y%m%d_%H%M")
     
     # Set the rst times, the second ensures a small interval to perform rst
-    t_rst1 = datetime.time(hour = 23, minute = 50)
-    t_rst2 = datetime.time(hour = 23, minute = 52)
+    #t_rst1 = datetime.time(hour = 23, minute = 50)
+    #t_rst2 = datetime.time(hour = 23, minute = 52)
+    t_rst1 = datetime.time(hour = 13, minute = 0)
+    t_rst2 = datetime.time(hour = 13, minute = 2)
 
     ## Open and load the ini file
     base_path = os.path.dirname(os.path.realpath(__file__))
@@ -42,7 +44,7 @@ def main():
         
         # Search for usb path if present
         for part in psutil.disk_partitions():
-            if part.mountpoint.startswith('/media/pi/'):
+            if part.mountpoint.startswith('/media/vcelkator/'):
                 mount_folder = os.path.basename(part.mountpoint)
                 if mount_folder == driveName or mount_folder.startswith(driveName):
                     usb_path = part.mountpoint
@@ -51,6 +53,7 @@ def main():
         # Create the log directory and its structure if it not exists yet. Log to drive or to rPi if drive is not present.
         if driveName != 'NaN' and usb_path:
             log_path = os.path.join(usb_path, log_path)
+            cfg_path = os.path.join(usb_path, 'BeeLogger.ini')
         else:
             log_path = os.path.join(base_path, log_path)
         
@@ -104,6 +107,14 @@ def main():
         
         if logStop and now > t_stop:
             logging.error(': Stop time is smaller than the current time.')
+            return -1
+        
+        # Check if sensor period is greater or equal to record time
+        periodSensor = config.getint('Sensors', 'period_threadSensors')
+        recordTime = config.getint('Sensors', 'recordTime')
+        
+        if periodSensor < recordTime:
+            logging.error(': Sensor period has to be greater than the record time.')
             return -1
     
     # Create and run the camera and sensors threads

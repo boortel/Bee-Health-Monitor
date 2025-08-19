@@ -47,6 +47,7 @@ class SensorsThread(threading.Thread):
         
         # Initialize the microphone and indication LED
         self.microphone = Microphone(self.recordTime, baseLog)
+        
         # TODO add LED control
         
         # Open the log file and create header
@@ -85,7 +86,10 @@ class SensorsThread(threading.Thread):
         # Stop the Measurements thread
         eventMeasurements_run.clear()
         eventMeasurementAVG_read.clear()
-        queueMeasurementAVG.clear()
+        
+        # Empty the queue
+        while not queueMeasurementAVG.empty():
+            queueMeasurementAVG.get()
         
         # TODO add LED control
         #self.LED.off()
@@ -110,10 +114,14 @@ class SensorsThread(threading.Thread):
             measurement_period_actual = time.time()
             measurement_period = measurement_period_actual - measurement_period_start
             
-            while (measurement_period < self.periodSensor) and eventMeasurements_run.is_set():
+            while (measurement_period < (self.periodSensor - self.recordTime)) and eventMeasurements_run.is_set():
                 time.sleep(0.1)
                 measurement_period_actual = time.time()
                 measurement_period = measurement_period_actual - measurement_period_start
+                
+            if not eventMeasurements_run.is_set():
+                logging.info(": Measurement stopped, exiting the sensor thread")
+                break
                 
             # TODO add LED control
             #self.LED.toggle()
@@ -127,7 +135,7 @@ class SensorsThread(threading.Thread):
                 eventMeasurementAVG_read.set()
                 co2_eq_ppm, tvoc_ppb, TempIn, HumIn, TempOut, HumOut, PressOut, Light = queueMeasurementAVG.get(timeout = 15)
             except queue.Empty:
-                logging.error("Sensor reading timed out.")
+                logging.error(": Sensor reading timed out")
                 
                 co2_eq_ppm = NaN
                 tvoc_ppb = NaN

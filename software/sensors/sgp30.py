@@ -5,6 +5,8 @@ import logging
 
 import smbus2 as smbus
 
+from numpy import NaN
+
 class SGP30:
     def __init__(self, bus: int, address: int = 0x58) -> None:
         """Initialize the class.
@@ -28,7 +30,7 @@ class SGP30:
             time.sleep(0.01)
             return True
         except Exception as e:
-            logging.error(f"SGP30 init failed: {e}")
+            logging.error(": SGP30 sensor initialization failed: %s", e)
             return False
 
     def get_air_quality(self) -> tuple[int, int, bool]:
@@ -37,27 +39,36 @@ class SGP30:
         Returns:
             Tuple: (eCO2 ppm, TVOC ppb, CRC error flag)
         """
-        self.__write_cmd([0x20, 0x08])  # Measure Air Quality command
-        time.sleep(0.05)
-
+        try:
+            self.__write_cmd([0x20, 0x08])  # Measure Air Quality command
+            time.sleep(0.05)
+        except Exception as e:
+            logging.error(": SGP30 failed to send measurement command: %s", e)
+            return (NaN, NaN, False)
+        
         try:
             data = self.i2cbus.read_i2c_block_data(self._addr, 0, 6)
-            eCO2 = (data[0] << 8) | data[1]
-            eCO2_crc_ok = self.__check_crc(data[0:2], data[2])
-
-            TVOC = (data[3] << 8) | data[4]
-            TVOC_crc_ok = self.__check_crc(data[3:5], data[5])
-
-            crc_error = not (eCO2_crc_ok and TVOC_crc_ok)
-
-            logging.debug(f"Raw data : {[hex(b) for b in data]}")
-            logging.debug(f"eCO2     : {eCO2} ppm, CRC OK: {eCO2_crc_ok}")
-            logging.debug(f"TVOC     : {TVOC} ppb, CRC OK: {TVOC_crc_ok}")
-
-            return (eCO2, TVOC, crc_error)
         except Exception as e:
-            logger.error(f"Failed to read air quality: {e}")
-            return (0, 0, True)
+            logging.error(": SHT31 failed to read data: %s", e)
+            return (NaN, NaN, False)
+        
+        eCO2 = (data[0] << 8) | data[1]
+        eCO2_crc_ok = self.__check_crc(data[0:2], data[2])
+
+        TVOC = (data[3] << 8) | data[4]
+        TVOC_crc_ok = self.__check_crc(data[3:5], data[5])
+
+        crc_error = not (eCO2_crc_ok and TVOC_crc_ok)
+        
+        logging.debug(f"Raw data : {[hex(b) for b in data]}")
+        logging.debug(f"eCO2     : {eCO2} ppm, CRC OK: {eCO2_crc_ok}")
+        logging.debug(f"TVOC     : {TVOC} ppb, CRC OK: {TVOC_crc_ok}")
+        
+        if crc_error:
+            logging.warning(": SHT31 CRC check failed")
+            return (NaN, NaN, True)
+
+        return (eCO2, TVOC, crc_error)
 
     def __check_crc(self, data: list[int], crc: int) -> bool:
         """Check CRC of 2-byte data using 0x31 polynomial."""
