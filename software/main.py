@@ -8,9 +8,9 @@ import logging
 import datetime
 import configparser
 
-from Camera import eventCamera_capture
-from CameraThread import CameraThread, eventCameraThread_run
 from SensorsThread import SensorsThread, eventSensorsThread_run
+from Lighting import init_pwm_outputs, lights_on, lights_off, cleanup_pwm
+from CameraThread import CameraThread, eventCameraThread_run, eventCamera_capture
 
 #from BeeCounter.BeeCounterThread import eventBeeCounterRead, queueBeeCounterRead
 
@@ -24,10 +24,8 @@ def main():
     timeString = now.strftime("%Y%m%d_%H%M")
     
     # Set the rst times, the second ensures a small interval to perform rst
-    #t_rst1 = datetime.time(hour = 23, minute = 50)
-    #t_rst2 = datetime.time(hour = 23, minute = 52)
-    t_rst1 = datetime.time(hour = 13, minute = 0)
-    t_rst2 = datetime.time(hour = 13, minute = 2)
+    t_rst1 = datetime.time(hour = 23, minute = 50)
+    t_rst2 = datetime.time(hour = 23, minute = 52)
 
     ## Open and load the ini file
     base_path = os.path.dirname(os.path.realpath(__file__))
@@ -110,15 +108,20 @@ def main():
             return -1
         
         # Check if sensor period is greater or equal to record time
-        periodSensor = config.getint('Sensors', 'period_threadSensors')
-        recordTime = config.getint('Sensors', 'recordTime')
+        periodSensor = cfg.getint('Sensors', 'period_threadSensors')
+        recordTime = cfg.getint('Sensors', 'recordTime')
         
         if periodSensor < recordTime:
             logging.error(': Sensor period has to be greater than the record time.')
             return -1
+        
+    # Init Lighting (no threads)
+    pwms = init_pwm_outputs(cfg)
     
     # Create and run the camera and sensors threads
-    #cam = CameraThread(name = 'CamThread', baseLog = log_path, config = cfg)
+    cam = CameraThread(name='CamThread', baseLog=log_path, config=cfg)
+    cam.start()
+    
     sens = SensorsThread(name = 'SensThread', baseLog = log_path, config = cfg)
     sens.start()
     
@@ -130,13 +133,13 @@ def main():
         t_now = datetime.datetime.now()
         t_capture = datetime.time(hour=t_now.hour, minute=t_now.minute, second=t_now.second)
 
-        # Turn on and off the camera capture together with the light
+        # Turn on and off the camera capture + lights
         if t_capture >= t_on and t_capture < t_off:
-            eventCamera_capture.set()
-            # TODO: Turn the light on
+            lights_on(pwms)               # Light ON
+            eventCamera_capture.set()     # Camera ON
         else:
-            eventCamera_capture.clear()
-            # TODO: Turn the light off
+            eventCamera_capture.clear()   # Camera OFF
+            lights_off(pwms)              # Light OFF
 
         # Stop the logging if the stop flag and time are set
         if logStop and t_now >= t_stop: #and not(eventSensorThread_measure.is_set()):
@@ -159,7 +162,9 @@ def main():
     sens.stop()
     time.sleep(2)
     
-    # TODO Turn the light off
+    # Ensure lights are OFF and cleanup PWM
+    lights_off(pwms)
+    cleanup_pwm(pwms)
     
     # Turn off or rst the rPi
     if rpi_off:
